@@ -54,15 +54,103 @@ public final class CircuitLibrary {
     }
 
     /** Compact multi-line summary injected into every AI request. */
-    public static String summary() {
+    /** Compact multi-line summary injected into every AI request, filtered/ranked dynamically by the query. */
+    public static String summary(String query) {
         StringBuilder sb = new StringBuilder(
                 "BUILD LIBRARY — match the player's request to these entries.\n"
                 + "  [buildable] = has verified block data: retrieve with {\"use\":\"id\"} or stitch via \"parts\".\n"
-                + "  [blueprint] = description-only: compose from buildable parts, or generate a custom build that follows the description.\n");
-        for (CircuitPrimitive p : getAll()) {
+                + "  [blueprint] = description-only: compose from buildable parts, or generate a custom build that follows the description.\n\n");
+
+        List<CircuitPrimitive> all = getAll();
+        if (query == null || query.isBlank()) {
+            sb.append("Common circuits:\n");
+            for (int i = 0; i < Math.min(15, all.size()); i++) {
+                sb.append("  ").append(all.get(i).summaryLine()).append('\n');
+            }
+            sb.append("\nOther available IDs: ");
+            List<String> others = new ArrayList<>();
+            for (int i = 15; i < all.size(); i++) {
+                others.add(all.get(i).id());
+            }
+            sb.append(String.join(", ", others)).append('\n');
+            return sb.toString();
+        }
+
+        // Split query into lowercase alphanumeric words.
+        String[] words = query.toLowerCase().replaceAll("[^a-z0-9\\s-]", "").split("\\s+");
+
+        // Score each primitive.
+        List<ScoredPrimitive> scored = new ArrayList<>();
+        for (CircuitPrimitive p : all) {
+            int score = 0;
+            String id = p.id().toLowerCase();
+            String title = p.title().toLowerCase();
+            String desc = p.description().toLowerCase();
+
+            for (String w : words) {
+                if (w.isEmpty()) continue;
+                if (id.equals(w)) {
+                    score += 15;
+                } else if (id.contains(w)) {
+                    score += 8;
+                }
+
+                if (title.contains(w)) {
+                    score += 6;
+                }
+
+                for (String alias : p.aliases()) {
+                    String a = alias.toLowerCase();
+                    if (a.equals(w)) {
+                        score += 10;
+                    } else if (a.contains(w)) {
+                        score += 5;
+                    }
+                }
+
+                if (desc.contains(w)) {
+                    score += 2;
+                }
+            }
+            scored.add(new ScoredPrimitive(p, score));
+        }
+
+        // Sort by score descending.
+        scored.sort((a, b) -> Integer.compare(b.score, a.score));
+
+        // Show full details for the top scored ones (at least 8, and up to 15, or any with score > 0).
+        List<CircuitPrimitive> detailed = new ArrayList<>();
+        List<String> compact = new ArrayList<>();
+
+        for (int i = 0; i < scored.size(); i++) {
+            ScoredPrimitive sp = scored.get(i);
+            if (i < 8 || sp.score > 0) {
+                detailed.add(sp.prim);
+            } else {
+                compact.add(sp.prim.id());
+            }
+        }
+
+        sb.append("Relevant/Common circuits:\n");
+        for (CircuitPrimitive p : detailed) {
             sb.append("  ").append(p.summaryLine()).append('\n');
         }
+
+        if (!compact.isEmpty()) {
+            sb.append("\nOther available IDs: ").append(String.join(", ", compact)).append('\n');
+        }
+
         return sb.toString();
+    }
+
+    private static final class ScoredPrimitive {
+        final CircuitPrimitive prim;
+        final int score;
+
+        ScoredPrimitive(CircuitPrimitive prim, int score) {
+            this.prim = prim;
+            this.score = score;
+        }
     }
 
     private static synchronized Map<String, CircuitPrimitive> index() {
