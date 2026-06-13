@@ -1,0 +1,8 @@
+{
+  "id": "cobblestone-generator",
+  "title": "Cobblestone Generator",
+  "category": "utility",
+  "description": "Generates infinite cobblestone by combining flowing lava and water. Lava flows from a source into a channel where water meets it — the collision produces cobblestone at the meeting point. A piston breaks the cobblestone block and a hopper below collects it, or the player manually mines it. Place lava source on one end of a 1-block trench, water source on the other end 4 blocks away. The cobblestone spawns 1 block from the lava. Optional: observer+piston makes it automatic; a clock-piston breaks blocks repeatedly.",
+  "aliases": ["cobble gen", "cobblestone gen", "infinite cobblestone", "stone generator"],
+  "footprint": "6x3x2"
+}

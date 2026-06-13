@@ -1,0 +1,55 @@
+{
+  "id": "dropper-clock",
+  "title": "Dropper Clock",
+  "category": "timing",
+  "description": "A reliable, adjustable clock built from two droppers facing each other with a single item bouncing between them. Each transfer fires one observer pulse. Clock speed depends on dropper delay (4 game ticks per transfer). More reliable than torch clocks as it never burns out.",
+  "aliases": ["dropper oscillator", "item clock", "two-dropper clock"],
+  "inputs": [],
+  "outputs": ["clock"],
+  "footprint": "3x2x2",
+  "steps": [
+    {
+      "title": "Foundation",
+      "explanation": "3-wide, 2-deep stone base. Two droppers will face each other east-west; an observer watches one of them.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "Two facing droppers",
+      "explanation": "Dropper A at (0,1,0) facing east. Dropper B at (2,1,0) facing west. Place one item (any — a dirt block works) inside Dropper A. When powered, A shoots into B; observer detects, powers B back. The item bounces back and forth indefinitely.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:dropper[facing=east,triggered=false]"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:dropper[facing=west,triggered=false]"}
+      ]
+    },
+    {
+      "title": "Observer watching Dropper A",
+      "explanation": "Observer at (0,1,1) facing east (arrow points at Dropper A's front). When Dropper A fires, its block state changes — the observer emits a 1-tick pulse from its back (west). This pulse powers Dropper B on the next cycle.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:dropper[facing=east,triggered=false]"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:dropper[facing=west,triggered=false]"},
+        {"x":0,"y":1,"z":1,"block":"minecraft:observer[facing=east,powered=false]"}
+      ]
+    },
+    {
+      "title": "Wiring and output",
+      "explanation": "Dust at (1,1,1) carries the observer pulse east to (2,1,1) which powers Dropper B. Dust at (2,1,1) also extends to a redstone lamp at (2,0,-1) so you can see the clock ticking. The system is self-sustaining as long as Dropper A was seeded with an item.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:dropper[facing=east,triggered=false]"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:dropper[facing=west,triggered=false]"},
+        {"x":0,"y":1,"z":1,"block":"minecraft:observer[facing=east,powered=false]"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":0,"z":-1,"block":"minecraft:redstone_lamp"}
+      ]
+    }
+  ]
+}

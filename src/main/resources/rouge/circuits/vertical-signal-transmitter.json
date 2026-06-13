@@ -1,0 +1,55 @@
+{
+  "id": "vertical-signal-transmitter",
+  "title": "Vertical Signal Transmitter",
+  "category": "utility",
+  "description": "Carries a redstone signal straight up or down through multiple floors using a column of redstone dust on solid blocks, or via a torch tower (alternating torch-block pattern) for inverted vertical transmission over many layers. Each torch-block pair = 1 NOT inversion, so use pairs to preserve polarity.",
+  "aliases": ["vertical wire", "signal tower", "upward redstone", "torch tower", "vertical redstone"],
+  "inputs": ["signal_in"],
+  "outputs": ["signal_out"],
+  "footprint": "1x5x1",
+  "steps": [
+    {
+      "title": "Ground-floor input",
+      "explanation": "Lever at (0,1,0) at ground level. This is the signal source that needs to travel upward.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"}
+      ]
+    },
+    {
+      "title": "First torch-block pair (level 1→2)",
+      "explanation": "Solid block at (0,2,0). Redstone torch on its side face at (0,2,0) — the torch is lit when the level below is OFF. When the lever goes ON, it extinguishes this torch. This is the first inversion stage.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":0,"y":2,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":2,"z":1,"block":"minecraft:redstone_torch"}
+      ]
+    },
+    {
+      "title": "Second torch-block pair (level 3→4)",
+      "explanation": "Another solid block at (0,3,0), with a second redstone torch on its side. This second inversion restores the original polarity — lever ON → torch 1 OFF → torch 2 ON. Every two pairs maintains signal polarity.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":0,"y":2,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":2,"z":1,"block":"minecraft:redstone_torch"},
+        {"x":0,"y":3,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":3,"z":1,"block":"minecraft:redstone_torch"}
+      ]
+    },
+    {
+      "title": "Top-floor output lamp",
+      "explanation": "Redstone lamp at (0,4,0) on the top floor. Torch 2's output reaches it via the stone block at y=3. With lever ON, lamp is ON (double-inverted = non-inverted). Extend the tower by repeating torch-block pairs — each pair adds one floor.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":0,"y":2,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":2,"z":1,"block":"minecraft:redstone_torch"},
+        {"x":0,"y":3,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":3,"z":1,"block":"minecraft:redstone_torch"},
+        {"x":0,"y":4,"z":0,"block":"minecraft:redstone_lamp"}
+      ]
+    }
+  ]
+}

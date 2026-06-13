@@ -1,0 +1,40 @@
+{
+  "id": "lectern-signal",
+  "title": "Lectern Signal",
+  "category": "detection",
+  "description": "A lectern holding a book emits a comparator signal proportional to the current page number. Strength = floor(page / total_pages * 14) + 1, reaching 15 on the last page. Used in combination locks, page-based selectors, and book-driven input systems.",
+  "aliases": ["lectern", "book signal", "page detector", "book comparator"],
+  "inputs": [],
+  "outputs": ["page_signal"],
+  "footprint": "3x2x1",
+  "steps": [
+    {
+      "title": "Lectern placement",
+      "explanation": "Place a lectern at (0,1,0). Right-click it with a written book (any book with multiple pages). The lectern now holds the book and will output a signal based on which page is currently displayed.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lectern[facing=east,has_book=true,powered=false]"}
+      ]
+    },
+    {
+      "title": "Comparator reader",
+      "explanation": "A comparator at (1,1,0) facing east, in compare mode. The comparator reads the lectern's signal strength from its back (the lectern side). Output signal on the comparator's east side reflects the current page.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lectern[facing=east,has_book=true,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:comparator[facing=east,mode=compare,powered=false]"}
+      ]
+    },
+    {
+      "title": "Output lamp",
+      "explanation": "Dust at (2,1,0) carries the page-signal to a lamp at (2,0,-1). Turn pages in the lectern — the lamp brightens (or dims, depending on signal strength vs. lamp threshold). At page 1 the lamp is faint; at the last page it is at full strength 15.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lectern[facing=east,has_book=true,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:comparator[facing=east,mode=compare,powered=false]"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":0,"z":-1,"block":"minecraft:redstone_lamp"}
+      ]
+    }
+  ]
+}

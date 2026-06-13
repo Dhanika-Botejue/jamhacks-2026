@@ -1,0 +1,57 @@
+{
+  "id": "comparator-latch",
+  "title": "Comparator Latch",
+  "category": "memory",
+  "description": "Uses a comparator in subtraction mode to lock a signal. When the side input equals or exceeds the rear input the output goes to zero, latching state. Common in item-count detectors and container-full alarms.",
+  "aliases": ["comparator memory", "comparator latch", "subtraction latch"],
+  "inputs": ["signal", "side_input"],
+  "outputs": ["output"],
+  "footprint": "4x2x2",
+  "steps": [
+    {
+      "title": "Foundation",
+      "explanation": "4-wide, 2-deep stone base. Signal enters from the west; the comparator sits in the middle facing east; output goes east.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "Signal lever and side input",
+      "explanation": "Main signal lever at (0,1,0). Side input lever at (1,1,1) — this feeds the comparator's side port. Dust carries main signal east to (1,1,0).",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:redstone_wire"}
+      ]
+    },
+    {
+      "title": "Comparator in subtract mode",
+      "explanation": "Place a comparator at (2,1,0) facing east, in subtract mode (right-click once to activate the front torch). In subtract mode output = rear_signal - side_signal. When side >= rear the output is 0 (locked off).",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:comparator[facing=east,mode=subtract,powered=false]"}
+      ]
+    },
+    {
+      "title": "Output lamp",
+      "explanation": "Dust at (3,1,0) carries the comparator output to a lamp at (3,0,-1). Lamp is lit when rear > side. Raise the side lever to subtract strength and watch the lamp dim or extinguish, latching the state.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:comparator[facing=east,mode=subtract,powered=false]"},
+        {"x":3,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":3,"y":0,"z":-1,"block":"minecraft:redstone_lamp"}
+      ]
+    }
+  ]
+}
