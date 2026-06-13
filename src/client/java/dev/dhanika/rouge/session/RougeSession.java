@@ -302,16 +302,53 @@ public final class RougeSession {
         sendToAi(text);
     }
 
-    /** True when a chat message reads as a request to build/make something (vs. a question). */
+    /** True when a chat message reads as a request to BUILD something (vs. a question about redstone). */
     private static boolean looksLikeBuildRequest(String text) {
         String t = text.toLowerCase().strip();
         if (t.isEmpty()) return false;
-        if (t.startsWith("show me how") || t.startsWith("how do i") || t.startsWith("how to")
-                || t.startsWith("teach me") || t.startsWith("teach ")) {
+
+        // Pure questions / explanations → always go to the AI.
+        if (t.startsWith("what ") || t.startsWith("why ") || t.startsWith("does ")
+                || t.startsWith("is ") || t.startsWith("are ") || t.startsWith("can you explain")
+                || t.startsWith("explain") || t.startsWith("tell me about")
+                || t.startsWith("how does") || t.startsWith("how do redstone")
+                || t.startsWith("how do they") || t.startsWith("how do these")) {
+            return false;
+        }
+
+        // "build/make/create/wire me a …" or bare build verb at the start → browser.
+        if (BUILD_VERBS.matcher(t).find()) {
+            // Exclude "what makes …", "why make …", "how does … make …" etc.
+            // A build verb is only a trigger if it appears as the main intent, not inside a question.
+            if (t.startsWith("what ") || t.startsWith("why ") || t.startsWith("how does")
+                    || t.startsWith("how do") && !t.startsWith("how do i " )
+                    && !t.startsWith("how do you ")) {
+                return false;
+            }
             return true;
         }
-        if (t.matches("^i (want|need|wanna|would like|'d like)\\b.*")) return true;
-        return BUILD_VERBS.matcher(t).find();
+
+        // "how do I build/make/wire …" or "how to build …" — only when followed by a build verb.
+        if ((t.startsWith("how do i ") || t.startsWith("how do you ") || t.startsWith("how to "))) {
+            return BUILD_VERBS.matcher(t).find();
+        }
+
+        // "show me how to build/make …" — only when a build verb follows.
+        if (t.startsWith("show me how")) {
+            return BUILD_VERBS.matcher(t).find();
+        }
+
+        // "teach me to build/make …" — only with a build verb.
+        if (t.startsWith("teach me") || t.startsWith("teach ")) {
+            return BUILD_VERBS.matcher(t).find();
+        }
+
+        // "I want/need to build/make …"
+        if (t.matches("^i (want|need|wanna|would like|'d like)\\b.*")) {
+            return BUILD_VERBS.matcher(t).find();
+        }
+
+        return false;
     }
 
     /**

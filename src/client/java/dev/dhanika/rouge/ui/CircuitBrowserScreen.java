@@ -4,6 +4,7 @@ import dev.dhanika.rouge.build.BlockEntry;
 import dev.dhanika.rouge.build.CircuitLibrary;
 import dev.dhanika.rouge.build.CircuitPrimitive;
 import dev.dhanika.rouge.session.RougeSession;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -55,6 +56,10 @@ public final class CircuitBrowserScreen extends Screen {
     private static final int CHIP_SEL    = 0xFF3A4A2A;
     private static final int CHIP_BORDER = 0xFF55FF66;
 
+    // Deferred open: set by open(), consumed on END_CLIENT_TICK so the chat screen
+    // has fully closed (setScreen(null)) before we replace it with the browser.
+    private static volatile String pendingQuery = null;
+
     private final Set<String> selected = new LinkedHashSet<>();
     private String query;
 
@@ -77,15 +82,24 @@ public final class CircuitBrowserScreen extends Screen {
         this.query = query == null ? "" : query;
     }
 
-    /** Opens the browser on the client thread, seeded with a search query. */
+    /**
+     * Schedules the browser to open on the next tick. Must be deferred because this is
+     * called from the ALLOW_CHAT event, which fires before the chat screen calls
+     * setScreen(null) on itself — opening immediately would be overwritten.
+     */
     public static void open(String query) {
-        Minecraft mc = Minecraft.getInstance();
-        mc.execute(() -> mc.setScreen(new CircuitBrowserScreen(query)));
+        pendingQuery = query == null ? "" : query;
     }
 
-    /** Registers screen-open key feedback — called from RougeClient. */
+    /** Registers the tick listener that drains the deferred open. Called from RougeClient. */
     public static void register() {
-        // No global key binding needed; the screen is opened via chat routing.
+        ClientTickEvents.END_CLIENT_TICK.register(mc -> {
+            String q = pendingQuery;
+            if (q != null && mc.screen == null) {
+                pendingQuery = null;
+                mc.setScreen(new CircuitBrowserScreen(q));
+            }
+        });
     }
 
     @Override
