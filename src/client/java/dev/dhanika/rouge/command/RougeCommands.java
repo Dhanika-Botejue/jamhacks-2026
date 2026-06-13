@@ -6,6 +6,7 @@ import dev.dhanika.rouge.chat.ChatDisplay;
 import dev.dhanika.rouge.session.RougeSession;
 import dev.dhanika.rouge.teach.LessonManager;
 import dev.dhanika.rouge.teach.StepSession;
+import dev.dhanika.rouge.ui.CircuitBrowserScreen;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 
@@ -20,6 +21,18 @@ public final class RougeCommands {
                             RougeSession.toggle();
                             return 1;
                         })
+                        .then(ClientCommandManager.literal("browse")
+                                .then(ClientCommandManager.argument("query", StringArgumentType.greedyString())
+                                        .executes(ctx -> {
+                                            if (!RougeSession.isOpen()) RougeSession.toggle();
+                                            CircuitBrowserScreen.open(StringArgumentType.getString(ctx, "query"));
+                                            return 1;
+                                        }))
+                                .executes(ctx -> {
+                                    if (!RougeSession.isOpen()) RougeSession.toggle();
+                                    CircuitBrowserScreen.open("");
+                                    return 1;
+                                }))
                         .then(ClientCommandManager.literal("next")
                                 .executes(ctx -> {
                                     StepSession.next();

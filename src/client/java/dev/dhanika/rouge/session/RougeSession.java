@@ -5,11 +5,13 @@ import dev.dhanika.rouge.ai.OpenRouterClient;
 import dev.dhanika.rouge.ai.OpenRouterConfig;
 import dev.dhanika.rouge.build.BuildDirective;
 import dev.dhanika.rouge.build.CircuitLibrary;
+import dev.dhanika.rouge.build.CircuitPrimitive;
 import dev.dhanika.rouge.build.StepPlan;
 import dev.dhanika.rouge.chat.ChatDisplay;
 import dev.dhanika.rouge.render.ThinkingHud;
 import dev.dhanika.rouge.prompt.SystemPrompts;
 import dev.dhanika.rouge.teach.StepSession;
+import dev.dhanika.rouge.ui.CircuitBrowserScreen;
 import net.minecraft.client.Minecraft;
 
 import org.slf4j.Logger;
@@ -67,6 +69,10 @@ public final class RougeSession {
     private static StepPlan pendingPlan;
     private static int repairAttempts = 0;
     private static String lastQuery = "";
+
+    // Build-intent verbs: a chat message matching these opens the build picker instead of the AI.
+    private static final Pattern BUILD_VERBS = Pattern.compile(
+            "\\b(build|rebuild|make|create|construct|assemble|wire)\\b", Pattern.CASE_INSENSITIVE);
     private static final List<ChatMessage> history = new ArrayList<>();
 
     private RougeSession() {}
@@ -144,8 +150,82 @@ public final class RougeSession {
         switch (mode) {
             case CONFIRM_BUILD -> handleConfirm(text);
             case BUILDING -> handleBuilding(text);
-            case CHAT -> sendToAi(text);
+            case CHAT -> handleChat(text);
         }
+    }
+
+    /** Build requests open the picker; everything else goes to the AI. */
+    private static void handleChat(String text) {
+        if (looksLikeBuildRequest(text)) {
+            String topic = extractTopic(text);
+            lastQuery = text;
+            ChatDisplay.system("Pick a design — showing the closest library matches for \""
+                    + topic + "\".");
+            CircuitBrowserScreen.open(topic);
+            return;
+        }
+        sendToAi(text);
+    }
+
+    private static boolean looksLikeBuildRequest(String text) {
+        String t = text.toLowerCase().strip();
+        if (t.isEmpty()) return false;
+        if (t.startsWith("show me how") || t.startsWith("how do i") || t.startsWith("how to")
+                || t.startsWith("teach me") || t.startsWith("teach ")) {
+            return true;
+        }
+        if (t.matches("^i (want|need|wanna|would like|'d like)\\b.*")) return true;
+        return BUILD_VERBS.matcher(t).find();
+    }
+
+    private static String extractTopic(String text) {
+        String t = text.strip().replaceAll("[?.!]+$", "").strip();
+        String[] tokens = t.split("\\s+");
+        java.util.Set<String> filler = java.util.Set.of(
+                "build", "rebuild", "make", "create", "construct", "assemble", "wire", "design",
+                "teach", "show", "how", "do", "to", "i", "want", "need", "wanna", "would", "like",
+                "give", "can", "could", "you", "please", "lets", "let's", "me", "us", "a", "an",
+                "the", "some", "my", "another", "new", "up");
+        int i = 0;
+        while (i < tokens.length && filler.contains(tokens[i].toLowerCase())) i++;
+        String topic = String.join(" ", java.util.Arrays.copyOfRange(tokens, i, tokens.length)).strip();
+        return topic.isEmpty() ? t : topic;
+    }
+
+    /** Player picked one design in the build picker. */
+    public static void buildSelected(CircuitPrimitive circuit, String goal) {
+        if (circuit == null) return;
+        if (!open) openSession();
+
+        if (circuit.isBuildable()) {
+            pendingPlan = null;
+            mode = Mode.BUILDING;
+            StepSession.start(circuit.toStepPlan());
+            if (!StepSession.isActive()) {
+                mode = Mode.CHAT;
+            } else {
+                ChatDisplay.system("Building " + circuit.title() + " from the library.");
+            }
+            return;
+        }
+
+        String prompt = (goal == null || goal.isBlank()) ? circuit.title() : goal.strip();
+        ChatDisplay.system("Blueprint selected — Rouge will generate " + circuit.title() + "…");
+        buildWithAi(prompt + " (use the " + circuit.id() + " blueprint from the library)");
+    }
+
+    /** "Let Rouge choose" — skip the picker and ask the AI directly. */
+    public static void buildWithAi(String goal) {
+        if (!open) openSession();
+        if (awaitingReply) {
+            ChatDisplay.system("Rouge is still thinking… give it a moment.");
+            return;
+        }
+        pendingPlan = null;
+        String msg = (goal == null || goal.isBlank())
+                ? "Pick a redstone build that fits and show me." : goal.strip();
+        ChatDisplay.system("Letting Rouge pick a build for you…");
+        sendToAi(msg);
     }
 
     // --- mode handlers ---

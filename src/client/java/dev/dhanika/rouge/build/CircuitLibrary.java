@@ -80,42 +80,12 @@ public final class CircuitLibrary {
         }
 
         // Split query into lowercase alphanumeric words.
-        String[] words = query.toLowerCase().replaceAll("[^a-z0-9\\s-]", "").split("\\s+");
+        String[] words = queryWords(query);
 
         // Score each primitive.
         List<ScoredPrimitive> scored = new ArrayList<>();
         for (CircuitPrimitive p : all) {
-            int score = 0;
-            String id = p.id().toLowerCase();
-            String title = p.title().toLowerCase();
-            String desc = p.description().toLowerCase();
-
-            for (String w : words) {
-                if (w.isEmpty()) continue;
-                if (id.equals(w)) {
-                    score += 15;
-                } else if (id.contains(w)) {
-                    score += 8;
-                }
-
-                if (title.contains(w)) {
-                    score += 6;
-                }
-
-                for (String alias : p.aliases()) {
-                    String a = alias.toLowerCase();
-                    if (a.equals(w)) {
-                        score += 10;
-                    } else if (a.contains(w)) {
-                        score += 5;
-                    }
-                }
-
-                if (desc.contains(w)) {
-                    score += 2;
-                }
-            }
-            scored.add(new ScoredPrimitive(p, score));
+            scored.add(new ScoredPrimitive(p, score(p, words)));
         }
 
         // Sort by score descending.
@@ -146,6 +116,75 @@ public final class CircuitLibrary {
         }
 
         return sb.toString();
+    }
+
+    /**
+     * All library entries ranked by relevance to the query (buildable + blueprint).
+     * Used by the build picker so the closest JSON matches appear first.
+     */
+    public static List<CircuitPrimitive> ranked(String query) {
+        String[] words = queryWords(query);
+        boolean hasQuery = words.length > 0;
+
+        List<ScoredPrimitive> scored = new ArrayList<>();
+        for (CircuitPrimitive p : getAll()) {
+            scored.add(new ScoredPrimitive(p, score(p, words)));
+        }
+        scored.sort((a, b) -> Integer.compare(b.score, a.score));
+
+        List<CircuitPrimitive> out = new ArrayList<>();
+        final int maxResults = 24;
+        for (ScoredPrimitive sp : scored) {
+            if (out.size() >= maxResults) break;
+            if (hasQuery && sp.score <= 0) continue;
+            out.add(sp.prim);
+        }
+
+        if (out.isEmpty()) {
+            for (ScoredPrimitive sp : scored) {
+                if (sp.prim.isBuildable() && out.size() < 20) out.add(sp.prim);
+            }
+            for (ScoredPrimitive sp : scored) {
+                if (!sp.prim.isBuildable() && out.size() < maxResults) out.add(sp.prim);
+            }
+        }
+        return out;
+    }
+
+    private static String[] queryWords(String query) {
+        if (query == null || query.isBlank()) return new String[0];
+        return query.toLowerCase().replaceAll("[^a-z0-9\\s-]", "").split("\\s+");
+    }
+
+    private static int score(CircuitPrimitive p, String[] words) {
+        int score = 0;
+        String id = p.id().toLowerCase();
+        String title = p.title().toLowerCase();
+        String desc = p.description().toLowerCase();
+
+        for (String w : words) {
+            if (w.isEmpty()) continue;
+            if (id.equals(w)) {
+                score += 15;
+            } else if (id.contains(w)) {
+                score += 8;
+            }
+            if (title.contains(w)) {
+                score += 6;
+            }
+            for (String alias : p.aliases()) {
+                String a = alias.toLowerCase();
+                if (a.equals(w)) {
+                    score += 10;
+                } else if (a.contains(w)) {
+                    score += 5;
+                }
+            }
+            if (desc.contains(w)) {
+                score += 2;
+            }
+        }
+        return score;
     }
 
     private static final class ScoredPrimitive {
