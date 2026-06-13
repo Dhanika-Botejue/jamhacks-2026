@@ -33,6 +33,23 @@ public final class ChatDisplay {
         emit(message, ChatFormatting.RED);
     }
 
+    /** The user's own message, echoed in aqua so it's visible alongside Rouge's replies. */
+    public static void userSaid(String message) {
+        emit("[You] " + message, ChatFormatting.AQUA);
+    }
+
+    /** A thought/reasoning excerpt from the model (from &lt;think&gt; blocks), in dark gray italic. */
+    public static void thought(String message) {
+        Minecraft client = Minecraft.getInstance();
+        if (client.gui == null || message == null) return;
+        for (String line : message.split("\n", -1)) {
+            if (line.isBlank()) continue;
+            client.gui.getChat().addMessage(
+                    Component.literal("[Rouge thinks] " + line)
+                            .withStyle(s -> s.withColor(ChatFormatting.DARK_GRAY).withItalic(true)));
+        }
+    }
+
     private static void emit(String message, ChatFormatting color) {
         Minecraft client = Minecraft.getInstance();
         if (client.gui == null || message == null) {

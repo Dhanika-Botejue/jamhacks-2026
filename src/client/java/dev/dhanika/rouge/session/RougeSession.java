@@ -7,6 +7,7 @@ import dev.dhanika.rouge.build.BuildDirective;
 import dev.dhanika.rouge.build.CircuitLibrary;
 import dev.dhanika.rouge.build.StepPlan;
 import dev.dhanika.rouge.chat.ChatDisplay;
+import dev.dhanika.rouge.render.ThinkingHud;
 import dev.dhanika.rouge.prompt.SystemPrompts;
 import dev.dhanika.rouge.teach.StepSession;
 import net.minecraft.client.Minecraft;
@@ -44,6 +45,10 @@ public final class RougeSession {
     // Matches either fence name and captures the JSON body.
     private static final Pattern FENCE =
             Pattern.compile("```(?:rougebuild|stepplan)\\s*\\n([\\s\\S]*?)\\n?```", Pattern.DOTALL);
+
+    // Matches <think>...</think> reasoning blocks emitted by some models (e.g. DeepSeek R1).
+    private static final Pattern THINK_BLOCK =
+            Pattern.compile("<think>([\\s\\S]*?)</think>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     // How many recent conversation messages (user+assistant) to resend each turn.
     // The system prompt and library context are always re-injected separately, so this
@@ -133,6 +138,7 @@ public final class RougeSession {
     public static void handleUserMessage(String text) {
         if (!open || text == null || text.isBlank()) return;
 
+        ChatDisplay.userSaid(text); // echo player's own message so it's visible in chat
         repairAttempts = 0; // a fresh user turn — allow the model a repair retry again
 
         switch (mode) {
@@ -214,6 +220,7 @@ public final class RougeSession {
      */
     private static void dispatchToAi() {
         awaitingReply = true;
+        ThinkingHud.start();
         ChatDisplay.system("Rouge is thinking…");
 
         // Per-request system context: the persona prompt, the build library, and the current
@@ -246,6 +253,7 @@ public final class RougeSession {
 
     private static void onReply(String reply, Throwable err) {
         awaitingReply = false;
+        ThinkingHud.stop();
         if (!open) return;
 
         if (err != null) {
@@ -253,6 +261,14 @@ public final class RougeSession {
             ChatDisplay.error(rootMessage(err));
             return;
         }
+
+        // Extract and display any <think>...</think> reasoning blocks, then strip them.
+        Matcher tm = THINK_BLOCK.matcher(reply);
+        while (tm.find()) {
+            String thought = tm.group(1).trim();
+            if (!thought.isEmpty()) ChatDisplay.thought(thought);
+        }
+        reply = THINK_BLOCK.matcher(reply).replaceAll("").trim();
 
         Matcher m = FENCE.matcher(reply);
         boolean hasPlan = m.find();
