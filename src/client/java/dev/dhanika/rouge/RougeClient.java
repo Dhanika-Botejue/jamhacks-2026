@@ -9,6 +9,7 @@ import dev.dhanika.rouge.render.GhostRenderer;
 import dev.dhanika.rouge.session.RougeSession;
 import dev.dhanika.rouge.teach.ProactiveTutor;
 import dev.dhanika.rouge.teach.StepSession;
+import dev.dhanika.rouge.ui.CircuitBrowserScreen;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -33,6 +34,7 @@ public class RougeClient implements ClientModInitializer {
 
         RougeCommands.register();
         ChatInterceptor.register();
+        CircuitBrowserScreen.register();
         ProactiveTutor.register();
         WorldRenderEvents.AFTER_TRANSLUCENT.register(GhostRenderer::render);
 
