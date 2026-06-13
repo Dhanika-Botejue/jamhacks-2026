@@ -11,6 +11,9 @@ import dev.dhanika.rouge.prompt.SystemPrompts;
 import dev.dhanika.rouge.teach.StepSession;
 import net.minecraft.client.Minecraft;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionException;
@@ -33,6 +36,8 @@ import java.util.regex.Pattern;
  * </ul>
  */
 public final class RougeSession {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger("rouge");
 
     private enum Mode { CHAT, CONFIRM_BUILD, BUILDING }
 
@@ -161,7 +166,7 @@ public final class RougeSession {
         // Injected fresh each turn (not stored in history) to avoid bloating context.
         List<ChatMessage> request = new ArrayList<>(history);
         int insertAt = Math.min(1, request.size());
-        request.add(insertAt, ChatMessage.system(CircuitLibrary.summary()));
+        request.add(insertAt, ChatMessage.system(CircuitLibrary.summary(text)));
         if (mode == Mode.BUILDING) {
             String ctx = StepSession.contextLine();
             if (!ctx.isBlank()) {
@@ -202,15 +207,19 @@ public final class RougeSession {
                 StepPlan plan = BuildDirective.resolve(planJson);
                 if (plan.steps().isEmpty()) throw new IllegalStateException("empty plan");
 
-                pendingPlan = plan;
-                mode = Mode.CONFIRM_BUILD;
+                mode = Mode.BUILDING;
+                StepSession.start(plan);
+                if (!StepSession.isActive()) {
+                    mode = Mode.CHAT;
+                }
+
                 history.add(ChatMessage.assistant(chatPart.isEmpty() ? "[build proposal]" : chatPart));
                 if (!chatPart.isEmpty()) ChatDisplay.print(chatPart);
-                ChatDisplay.system("Want me to walk you through building this in-world? Say \"yes\" to start, \"no\" to skip, or keep chatting to tweak it.");
             } catch (Exception e) {
-                // Couldn't resolve the directive — fall back to showing the raw reply.
-                history.add(ChatMessage.assistant(reply));
-                ChatDisplay.print(reply);
+                // Intercept parsing error, log it, and print a clean error to the chat
+                // instead of dumping the raw JSON blocks/coordinates.
+                ChatDisplay.error("Failed to parse the build plan. Describe the build differently or try again.");
+                LOGGER.warn("[Rouge] Failed to parse build directive: {}", e.getMessage(), e);
             }
             return;
         }
