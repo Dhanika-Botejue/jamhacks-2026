@@ -1,0 +1,8 @@
+{
+  "id": "wheat-farm",
+  "title": "Automated Wheat Farm",
+  "category": "farm",
+  "description": "A fully automated wheat farm using pistons to harvest mature wheat and a water stream to collect drops into a hopper. Farmland rows are irrigated by a central water channel. An observer above each row or a clock triggers pistons when wheat reaches full growth (age=7). Collected wheat drops flow into hoppers leading to a chest. Bone meal dispensers optionally speed up growth. Typical size: 9x9 farmland patches with 1 water source per 4-block row.",
+  "aliases": ["wheat farm", "auto farm", "food farm", "bread farm", "crop farm"],
+  "footprint": "12x4x12"
+}

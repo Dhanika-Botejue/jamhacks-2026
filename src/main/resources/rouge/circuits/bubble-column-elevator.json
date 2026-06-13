@@ -1,0 +1,80 @@
+{
+  "id": "bubble-column-elevator",
+  "title": "Bubble Column Elevator",
+  "category": "utility",
+  "description": "A vertical water elevator that transports players up (soul sand bubbles) or down (magma block bubbles) rapidly. Soul sand at the bottom creates upward-flowing bubble columns; magma blocks create downward suction. Enclose in a 1×1 column of water source blocks for full-speed travel.",
+  "aliases": ["water elevator", "bubble elevator", "soul sand elevator", "magma elevator", "vertical transport"],
+  "inputs": [],
+  "outputs": [],
+  "footprint": "3x6x3",
+  "steps": [
+    {
+      "title": "Outer frame (ground level)",
+      "explanation": "Build a 3×3 glass frame at y=0 with a 1×1 opening in the center. Glass walls on all four sides: blocks at z=0,z=2 and x=0,x=2 for the full 3-wide row. Leave center (1,0,1) open.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:glass"},{"x":1,"y":0,"z":0,"block":"minecraft:glass"},{"x":2,"y":0,"z":0,"block":"minecraft:glass"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:glass"},{"x":2,"y":0,"z":1,"block":"minecraft:glass"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:glass"},{"x":1,"y":0,"z":2,"block":"minecraft:glass"},{"x":2,"y":0,"z":2,"block":"minecraft:glass"}
+      ]
+    },
+    {
+      "title": "Soul sand at the bottom",
+      "explanation": "Place soul sand at (1,-1,1) — below the center opening. Soul sand creates an upward bubble column through any water above it. It must be the lowest block of the water column.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:glass"},{"x":1,"y":0,"z":0,"block":"minecraft:glass"},{"x":2,"y":0,"z":0,"block":"minecraft:glass"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:glass"},{"x":2,"y":0,"z":1,"block":"minecraft:glass"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:glass"},{"x":1,"y":0,"z":2,"block":"minecraft:glass"},{"x":2,"y":0,"z":2,"block":"minecraft:glass"},
+        {"x":1,"y":-1,"z":1,"block":"minecraft:soul_sand"}
+      ]
+    },
+    {
+      "title": "Glass shaft (floors 1-4)",
+      "explanation": "Extend the 3×3 glass shaft upward for 4 more levels (y=1 through y=4). Each level has glass walls on all sides with the center column (1,y,1) left open for water. This forms the enclosed tube the bubble column travels through.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:glass"},{"x":1,"y":0,"z":0,"block":"minecraft:glass"},{"x":2,"y":0,"z":0,"block":"minecraft:glass"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:glass"},{"x":2,"y":0,"z":1,"block":"minecraft:glass"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:glass"},{"x":1,"y":0,"z":2,"block":"minecraft:glass"},{"x":2,"y":0,"z":2,"block":"minecraft:glass"},
+        {"x":1,"y":-1,"z":1,"block":"minecraft:soul_sand"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:glass"},{"x":1,"y":1,"z":0,"block":"minecraft:glass"},{"x":2,"y":1,"z":0,"block":"minecraft:glass"},
+        {"x":0,"y":1,"z":1,"block":"minecraft:glass"},{"x":2,"y":1,"z":1,"block":"minecraft:glass"},
+        {"x":0,"y":1,"z":2,"block":"minecraft:glass"},{"x":1,"y":1,"z":2,"block":"minecraft:glass"},{"x":2,"y":1,"z":2,"block":"minecraft:glass"},
+        {"x":0,"y":2,"z":0,"block":"minecraft:glass"},{"x":1,"y":2,"z":0,"block":"minecraft:glass"},{"x":2,"y":2,"z":0,"block":"minecraft:glass"},
+        {"x":0,"y":2,"z":1,"block":"minecraft:glass"},{"x":2,"y":2,"z":1,"block":"minecraft:glass"},
+        {"x":0,"y":2,"z":2,"block":"minecraft:glass"},{"x":1,"y":2,"z":2,"block":"minecraft:glass"},{"x":2,"y":2,"z":2,"block":"minecraft:glass"},
+        {"x":0,"y":3,"z":0,"block":"minecraft:glass"},{"x":1,"y":3,"z":0,"block":"minecraft:glass"},{"x":2,"y":3,"z":0,"block":"minecraft:glass"},
+        {"x":0,"y":3,"z":1,"block":"minecraft:glass"},{"x":2,"y":3,"z":1,"block":"minecraft:glass"},
+        {"x":0,"y":3,"z":2,"block":"minecraft:glass"},{"x":1,"y":3,"z":2,"block":"minecraft:glass"},{"x":2,"y":3,"z":2,"block":"minecraft:glass"},
+        {"x":0,"y":4,"z":0,"block":"minecraft:glass"},{"x":1,"y":4,"z":0,"block":"minecraft:glass"},{"x":2,"y":4,"z":0,"block":"minecraft:glass"},
+        {"x":0,"y":4,"z":1,"block":"minecraft:glass"},{"x":2,"y":4,"z":1,"block":"minecraft:glass"},
+        {"x":0,"y":4,"z":2,"block":"minecraft:glass"},{"x":1,"y":4,"z":2,"block":"minecraft:glass"},{"x":2,"y":4,"z":2,"block":"minecraft:glass"}
+      ]
+    },
+    {
+      "title": "Water fill and top exit",
+      "explanation": "Place a water source block at the TOP of the column (1,4,1). Water flows down filling the column. Each level from y=0 to y=3 becomes a water source naturally once the column is enclosed. At the top, a door or open space lets the player step off. The bubble column launches players upward at walking speed — hold Spacebar or jump to stay in the column.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:glass"},{"x":1,"y":0,"z":0,"block":"minecraft:glass"},{"x":2,"y":0,"z":0,"block":"minecraft:glass"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:glass"},{"x":2,"y":0,"z":1,"block":"minecraft:glass"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:glass"},{"x":1,"y":0,"z":2,"block":"minecraft:glass"},{"x":2,"y":0,"z":2,"block":"minecraft:glass"},
+        {"x":1,"y":-1,"z":1,"block":"minecraft:soul_sand"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:glass"},{"x":1,"y":1,"z":0,"block":"minecraft:glass"},{"x":2,"y":1,"z":0,"block":"minecraft:glass"},
+        {"x":0,"y":1,"z":1,"block":"minecraft:glass"},{"x":2,"y":1,"z":1,"block":"minecraft:glass"},
+        {"x":0,"y":1,"z":2,"block":"minecraft:glass"},{"x":1,"y":1,"z":2,"block":"minecraft:glass"},{"x":2,"y":1,"z":2,"block":"minecraft:glass"},
+        {"x":0,"y":2,"z":0,"block":"minecraft:glass"},{"x":1,"y":2,"z":0,"block":"minecraft:glass"},{"x":2,"y":2,"z":0,"block":"minecraft:glass"},
+        {"x":0,"y":2,"z":1,"block":"minecraft:glass"},{"x":2,"y":2,"z":1,"block":"minecraft:glass"},
+        {"x":0,"y":2,"z":2,"block":"minecraft:glass"},{"x":1,"y":2,"z":2,"block":"minecraft:glass"},{"x":2,"y":2,"z":2,"block":"minecraft:glass"},
+        {"x":0,"y":3,"z":0,"block":"minecraft:glass"},{"x":1,"y":3,"z":0,"block":"minecraft:glass"},{"x":2,"y":3,"z":0,"block":"minecraft:glass"},
+        {"x":0,"y":3,"z":1,"block":"minecraft:glass"},{"x":2,"y":3,"z":1,"block":"minecraft:glass"},
+        {"x":0,"y":3,"z":2,"block":"minecraft:glass"},{"x":1,"y":3,"z":2,"block":"minecraft:glass"},{"x":2,"y":3,"z":2,"block":"minecraft:glass"},
+        {"x":0,"y":4,"z":0,"block":"minecraft:glass"},{"x":1,"y":4,"z":0,"block":"minecraft:glass"},{"x":2,"y":4,"z":0,"block":"minecraft:glass"},
+        {"x":0,"y":4,"z":1,"block":"minecraft:glass"},{"x":2,"y":4,"z":1,"block":"minecraft:glass"},
+        {"x":0,"y":4,"z":2,"block":"minecraft:glass"},{"x":1,"y":4,"z":2,"block":"minecraft:glass"},{"x":2,"y":4,"z":2,"block":"minecraft:glass"},
+        {"x":1,"y":0,"z":1,"block":"minecraft:water[level=0]"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:water[level=0]"},
+        {"x":1,"y":2,"z":1,"block":"minecraft:water[level=0]"},
+        {"x":1,"y":3,"z":1,"block":"minecraft:water[level=0]"},
+        {"x":1,"y":4,"z":1,"block":"minecraft:water[level=0]"}
+      ]
+    }
+  ]
+}

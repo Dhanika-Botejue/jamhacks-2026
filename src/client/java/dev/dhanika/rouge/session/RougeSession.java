@@ -2,116 +2,308 @@ package dev.dhanika.rouge.session;
 
 import dev.dhanika.rouge.ai.ChatMessage;
 import dev.dhanika.rouge.ai.OpenRouterClient;
+import dev.dhanika.rouge.ai.OpenRouterConfig;
+import dev.dhanika.rouge.build.BuildDirective;
+import dev.dhanika.rouge.build.CircuitLibrary;
+import dev.dhanika.rouge.build.StepPlan;
 import dev.dhanika.rouge.chat.ChatDisplay;
 import dev.dhanika.rouge.prompt.SystemPrompts;
+import dev.dhanika.rouge.teach.StepSession;
 import net.minecraft.client.Minecraft;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletionException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
- * The single source of truth for a Rouge conversation: whether it's open, the
- * running message history, and whether a request is in flight.
- * <p>
- * All state here is mutated only on the main client thread. The toggle and chat
- * hooks fire on the main thread, and the async OpenRouter reply is posted back
- * with {@link Minecraft#execute(Runnable)} before any state is touched.
- * <p>
- * History lives only while the session is open and is cleared on close (and on
- * disconnect), so each session starts fresh.
+ * Owns the conversational state machine for a Rouge session.
+ *
+ * <ul>
+ *   <li>{@code CHAT} — normal redstone Q&A. When the AI proposes a build (a
+ *       {@code ```rougebuild} / {@code ```stepplan} fence), it is parsed and held as a
+ *       pending plan, and Rouge asks the player to confirm.</li>
+ *   <li>{@code CONFIRM_BUILD} — waiting on yes/no before starting the build. "Yes" starts
+ *       the step-by-step hologram; "no" discards it; anything else is treated as a follow-up
+ *       and routed back to the AI to refine the design.</li>
+ *   <li>{@code BUILDING} — a step session is live. "next"/"yes" advances to the next step,
+ *       "stop"/"no" ends it, and any real question is routed to the AI with build context so
+ *       the player can get help mid-build.</li>
+ * </ul>
  */
 public final class RougeSession {
 
-    private static OpenRouterClient client;
+    private static final Logger LOGGER = LoggerFactory.getLogger("rouge");
 
+    private enum Mode { CHAT, CONFIRM_BUILD, BUILDING }
+
+    // Matches either fence name and captures the JSON body.
+    private static final Pattern FENCE =
+            Pattern.compile("```(?:rougebuild|stepplan)\\s*\\n([\\s\\S]*?)\\n?```", Pattern.DOTALL);
+
+    // How many recent conversation messages (user+assistant) to resend each turn.
+    // The system prompt and library context are always re-injected separately, so this
+    // only bounds the running dialogue — keeping per-turn prefill fast as a session grows.
+    private static final int MAX_HISTORY_MESSAGES = 16;
+
+    // How many times, within one user turn, we ask the model to repair a malformed build
+    // directive before falling back to asking the player to clarify.
+    private static final int MAX_REPAIR_ATTEMPTS = 1;
+
+    private static OpenRouterClient client;
+    private static OpenRouterConfig config;
     private static boolean open = false;
     private static boolean awaitingReply = false;
+    private static Mode mode = Mode.CHAT;
+    private static StepPlan pendingPlan;
+    private static int repairAttempts = 0;
+    private static String lastQuery = "";
     private static final List<ChatMessage> history = new ArrayList<>();
 
-    private RougeSession() {
-    }
+    private RougeSession() {}
 
-    /** Wires in the AI client. Call once from the mod initializer. */
-    public static void init(OpenRouterClient openRouterClient) {
+    public static void init(OpenRouterClient openRouterClient, OpenRouterConfig openRouterConfig) {
         client = openRouterClient;
+        config = openRouterConfig;
     }
 
-    public static boolean isOpen() {
-        return open;
-    }
+    public static String getModel() { return config.model(); }
 
-    /** Opens the session if closed, closes it if open. */
+    public static void setModel(String id) { config.setModel(id); }
+
+    public static boolean isOpen() { return open; }
+
     public static void toggle() {
-        if (open) {
-            close();
-        } else {
-            openSession();
-        }
+        if (open) close();
+        else openSession();
     }
 
     private static void openSession() {
         open = true;
         awaitingReply = false;
+        mode = Mode.CHAT;
+        pendingPlan = null;
+        repairAttempts = 0;
+        lastQuery = "";
         history.clear();
         history.add(ChatMessage.system(SystemPrompts.redstoneTutor()));
-        ChatDisplay.system("Session opened. Ask me anything about redstone. Type /rouge again to close.");
+        client.prewarm(); // discover free models + warm the TLS connection before the first ask
+        ChatDisplay.system("Session open. Ask me to teach you any redstone build — I'll show it step by step in-world. Type /rouge again to close.");
     }
 
     private static void close() {
         open = false;
         awaitingReply = false;
+        mode = Mode.CHAT;
+        pendingPlan = null;
+        repairAttempts = 0;
+        lastQuery = "";
         history.clear();
+        StepSession.reset();
         ChatDisplay.system("Session closed. Chat is back to normal.");
     }
 
-    /** Full reset (e.g. on disconnect) — no chat output. */
     public static void reset() {
         open = false;
         awaitingReply = false;
+        mode = Mode.CHAT;
+        pendingPlan = null;
+        repairAttempts = 0;
+        lastQuery = "";
         history.clear();
     }
 
-    /**
-     * Handles a chat message the player typed while the session is open: sends it
-     * to OpenRouter and prints the reply. Must be called on the main thread.
-     */
     public static void handleUserMessage(String text) {
-        if (!open || text == null || text.isBlank()) {
+        if (!open || text == null || text.isBlank()) return;
+
+        repairAttempts = 0; // a fresh user turn — allow the model a repair retry again
+
+        switch (mode) {
+            case CONFIRM_BUILD -> handleConfirm(text);
+            case BUILDING -> handleBuilding(text);
+            case CHAT -> sendToAi(text);
+        }
+    }
+
+    // --- mode handlers ---
+
+    private static void handleConfirm(String text) {
+        switch (Affirmation.of(text)) {
+            case YES -> {
+                StepPlan plan = pendingPlan;
+                pendingPlan = null;
+                mode = Mode.BUILDING;
+                StepSession.start(plan);
+                if (!StepSession.isActive()) {
+                    mode = Mode.CHAT; // start() bailed (empty plan)
+                }
+            }
+            case NO -> {
+                pendingPlan = null;
+                mode = Mode.CHAT;
+                ChatDisplay.system("No worries — ask me anything else, or describe a different build.");
+            }
+            case OTHER -> {
+                // Treat as a follow-up: drop the stale proposal and let the AI re-plan.
+                pendingPlan = null;
+                mode = Mode.CHAT;
+                sendToAi(text);
+            }
+        }
+    }
+
+    private static void handleBuilding(String text) {
+        if (isMoveRequest(text)) {
+            StepSession.recenter(); // re-place the hologram without bothering the AI
             return;
         }
+        switch (Affirmation.of(text)) {
+            case YES -> {
+                StepSession.Advance result = StepSession.next();
+                if (result != StepSession.Advance.MORE) {
+                    mode = Mode.CHAT;
+                }
+            }
+            case NO -> {
+                StepSession.stop();
+                mode = Mode.CHAT;
+            }
+            case OTHER -> sendToAi(text); // a real question mid-build — stay in BUILDING
+        }
+    }
+
+    /** True for the short "bring the hologram to me" phrasings, handled locally (no AI call). */
+    private static boolean isMoveRequest(String text) {
+        String t = text.trim().toLowerCase().replaceAll("[!.?,]+$", "").trim();
+        return t.equals("move") || t.equals("move it") || t.equals("here")
+                || t.equals("move here") || t.equals("recenter") || t.equals("re-center")
+                || t.equals("bring it here") || t.equals("come here");
+    }
+
+    private static void sendToAi(String text) {
         if (awaitingReply) {
             ChatDisplay.system("Rouge is still thinking… one moment.");
             return;
         }
-
+        lastQuery = text;
         history.add(ChatMessage.user(text));
+        dispatchToAi();
+    }
+
+    /**
+     * Builds the per-request context and fires the AI call. Shared by normal user turns and
+     * by the build-directive repair retry, so both carry the same system prompt, build-library
+     * context, and recent-dialogue window.
+     */
+    private static void dispatchToAi() {
         awaitingReply = true;
         ChatDisplay.system("Rouge is thinking…");
 
-        client.complete(history).whenComplete((reply, err) ->
+        // Per-request system context: the persona prompt, the build library, and the current
+        // step if building. The library context is injected fresh each turn (not stored in
+        // history) to avoid bloating it. Only a recent window of the dialogue is resent so
+        // per-turn prefill stays fast as a long teaching session grows.
+        List<ChatMessage> request = new ArrayList<>();
+        if (!history.isEmpty()) {
+            request.add(history.get(0)); // persona system prompt, always first
+        }
+        request.add(ChatMessage.system(CircuitLibrary.summary(lastQuery)));
+        if (mode == Mode.BUILDING) {
+            String ctx = StepSession.contextLine();
+            if (!ctx.isBlank()) {
+                request.add(ChatMessage.system(
+                        ctx + " Answer their question concisely; do NOT emit a new build unless they ask to change the design."));
+            }
+        }
+        // Recent dialogue window (everything after the persona prompt at index 0).
+        int from = Math.max(1, history.size() - MAX_HISTORY_MESSAGES);
+        request.addAll(history.subList(from, history.size()));
+
+        client.complete(request).whenComplete((reply, err) ->
                 Minecraft.getInstance().execute(() -> onReply(reply, err)));
     }
 
-    /** Runs on the main thread once the request finishes (success or failure). */
     private static void onReply(String reply, Throwable err) {
         awaitingReply = false;
-
-        // The session may have been closed while the request was in flight.
-        if (!open) {
-            return;
-        }
+        if (!open) return;
 
         if (err != null) {
-            // Drop the unanswered user turn so history doesn't end on two user
-            // messages, letting the player simply retry.
             removeTrailingUserMessage();
             ChatDisplay.error(rootMessage(err));
             return;
         }
 
+        Matcher m = FENCE.matcher(reply);
+        boolean hasPlan = m.find();
+
+        // Mid-build: ignore any build fence so we don't interrupt the active hologram.
+        if (mode == Mode.BUILDING) {
+            String text = hasPlan ? FENCE.matcher(reply).replaceAll("").trim() : reply;
+            history.add(ChatMessage.assistant(reply));
+            if (!text.isEmpty()) ChatDisplay.print(text);
+            return;
+        }
+
+        if (hasPlan) {
+            String planJson = m.group(1).trim();
+            String chatPart = FENCE.matcher(reply).replaceAll("").trim();
+            try {
+                StepPlan plan = BuildDirective.resolve(planJson);
+                if (plan.steps().isEmpty()) throw new IllegalStateException("empty plan");
+
+                mode = Mode.BUILDING;
+                StepSession.start(plan);
+                if (!StepSession.isActive()) {
+                    mode = Mode.CHAT;
+                }
+
+                history.add(ChatMessage.assistant(chatPart.isEmpty() ? "[build proposal]" : chatPart));
+                if (!chatPart.isEmpty()) ChatDisplay.print(chatPart);
+            } catch (Exception e) {
+                LOGGER.warn("[Rouge] Failed to parse build directive: {}\nRaw JSON:\n{}", e.getMessage(), planJson, e);
+                attemptRepairOrClarify(reply, e.getMessage());
+            }
+            return;
+        }
+
         history.add(ChatMessage.assistant(reply));
         ChatDisplay.print(reply);
+    }
+
+    /**
+     * A build directive came back malformed. Instead of dead-ending on an error, we either
+     * ask the model to repair its own output once (showing it the exact failure), or — if a
+     * repair was already attempted this turn — ask the player to clarify. This keeps a single
+     * bad generation from blocking the build.
+     */
+    private static void attemptRepairOrClarify(String badReply, String error) {
+        if (repairAttempts >= MAX_REPAIR_ATTEMPTS) {
+            ChatDisplay.print("I couldn't turn that into a buildable plan. Could you give me a little more to "
+                    + "go on — the size, which way it should face, or a simpler version? "
+                    + "(e.g. \"a 2x2 piston door facing north\")");
+            return;
+        }
+        repairAttempts++;
+
+        // Let the model see its own bad output plus the specific parse error, then re-emit a
+        // clean directive. The corrective note is added to history so the retry has full context.
+        history.add(ChatMessage.assistant(badReply));
+        history.add(ChatMessage.user(
+                "That build directive didn't parse (" + safeError(error) + "). Re-send ONLY a corrected "
+                + "```rougebuild``` directive: use explicit \"steps\" with integer x/y/z and real 1.20.1 "
+                + "block ids, never put a blueprint id in \"use\" or \"parts\", and put no text outside the "
+                + "fence."));
+        ChatDisplay.system("Let me fix that…");
+        dispatchToAi();
+    }
+
+    private static String safeError(String error) {
+        if (error == null || error.isBlank()) return "invalid JSON";
+        return error.length() > 160 ? error.substring(0, 160) + "…" : error;
     }
 
     private static void removeTrailingUserMessage() {
@@ -120,7 +312,6 @@ public final class RougeSession {
         }
     }
 
-    /** Unwraps CompletionException to surface the underlying readable message. */
     private static String rootMessage(Throwable err) {
         Throwable cause = (err instanceof CompletionException && err.getCause() != null)
                 ? err.getCause() : err;

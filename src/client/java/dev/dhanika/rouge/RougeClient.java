@@ -2,21 +2,21 @@ package dev.dhanika.rouge;
 
 import dev.dhanika.rouge.ai.OpenRouterClient;
 import dev.dhanika.rouge.ai.OpenRouterConfig;
+import dev.dhanika.rouge.bridge.CanvasBridge;
 import dev.dhanika.rouge.chat.ChatInterceptor;
+import dev.dhanika.rouge.ai.ModelDiscovery;
 import dev.dhanika.rouge.command.RougeCommands;
+import dev.dhanika.rouge.compile.SketchCompiler;
+import dev.dhanika.rouge.render.GhostRenderer;
 import dev.dhanika.rouge.session.RougeSession;
+import dev.dhanika.rouge.teach.ProactiveTutor;
+import dev.dhanika.rouge.teach.StepSession;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/**
- * Rouge entry point — the single wiring spot for the mod.
- * <p>
- * Builds the reusable AI client, hands it to the session, then registers the
- * {@code /rouge} command, the chat interceptor, and a disconnect reset. Future
- * features can be wired in here without touching the existing modules.
- */
 public class RougeClient implements ClientModInitializer {
 
     public static final String MOD_ID = "rouge";
@@ -26,7 +26,8 @@ public class RougeClient implements ClientModInitializer {
     public void onInitializeClient() {
         OpenRouterConfig config = new OpenRouterConfig();
         OpenRouterClient client = new OpenRouterClient(config);
-        RougeSession.init(client);
+        RougeSession.init(client, config);
+        CanvasBridge.init(new SketchCompiler(client));
 
         if (!config.hasToken()) {
             LOGGER.warn("[Rouge] No {} set — Rouge can open a session but can't reach the AI until you set it.",
@@ -35,9 +36,15 @@ public class RougeClient implements ClientModInitializer {
 
         RougeCommands.register();
         ChatInterceptor.register();
+        ProactiveTutor.register();
+        WorldRenderEvents.AFTER_TRANSLUCENT.register(GhostRenderer::render);
 
-        // Never stay "open" across worlds/servers.
-        ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> RougeSession.reset());
+        ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
+            RougeSession.reset();
+            StepSession.reset();
+            ModelDiscovery.invalidate();
+            CanvasBridge.stop();
+        });
 
         LOGGER.info("Rouge initialized (model: {}).", config.model());
     }

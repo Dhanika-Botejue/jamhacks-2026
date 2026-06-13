@@ -1,0 +1,66 @@
+{
+  "id": "nand-gate",
+  "title": "NAND Gate",
+  "category": "logic",
+  "description": "Output is OFF only when ALL inputs are ON. A universal gate — any logic circuit can be built from NAND alone. Built as an AND gate followed by a NOT (inverter torch).",
+  "aliases": ["nand", "not-and", "universal gate"],
+  "inputs": ["input_a", "input_b"],
+  "outputs": ["output"],
+  "footprint": "4x2x3",
+  "steps": [
+    {
+      "title": "Foundation",
+      "explanation": "Lay a 4-wide, 3-deep stone base. Two input lanes at z=0 and z=2 converge at the AND merge point, then a NOT inverts the result.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},{"x":3,"y":0,"z":2,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "Input levers",
+      "explanation": "Lever A at (0,1,0), lever B at (0,1,2). Dust from each runs east one tile.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},{"x":3,"y":0,"z":2,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":0,"y":1,"z":2,"block":"minecraft:lever[face=floor,facing=north,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":2,"block":"minecraft:redstone_wire"}
+      ]
+    },
+    {
+      "title": "AND merge",
+      "explanation": "Both dust lanes connect from z=0 and z=2 into the central node at (1,1,1). Dust at (1,1,1) is only fully powered when BOTH levers are ON — that's AND.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},{"x":3,"y":0,"z":2,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":0,"y":1,"z":2,"block":"minecraft:lever[face=floor,facing=north,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":2,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":1,"block":"minecraft:redstone_wire"}
+      ]
+    },
+    {
+      "title": "NOT inversion + output lamp",
+      "explanation": "Torch on east face of the block at (2,0,1) inverts: when both levers are ON (AND=true), the torch is OFF (NAND=false). When either lever is off, torch is ON. Lamp at (3,0,1) shows the NAND output — lit unless both inputs are ON.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},{"x":3,"y":0,"z":2,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":0,"y":1,"z":2,"block":"minecraft:lever[face=floor,facing=north,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":2,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":3,"y":0,"z":1,"block":"minecraft:redstone_wall_torch[facing=east,lit=true]"},
+        {"x":3,"y":0,"z":-1,"block":"minecraft:redstone_lamp"}
+      ]
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "id": "storage-system",
+  "title": "Automatic Storage System",
+  "category": "storage",
+  "description": "A bulk item sorting and storage system. A central input chest connects to a chain of hopper-minecarts or a hopper line that feeds into individual filter hoppers. Each filter hopper is configured with 5 matching items to only accept that item type and deposit into a dedicated double chest. Items not matched by any filter fall through to a misc chest at the end of the chain. Uses comparator signals to stop hopper chains when chests are full. Typical setup: 1 input chest → N filter hoppers below → N labeled double chests.",
+  "aliases": ["item sorter", "auto storage", "sorting system", "chest organization", "item system"],
+  "footprint": "20x4x6"
+}
