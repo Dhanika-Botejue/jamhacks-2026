@@ -1,0 +1,25 @@
+{
+	"schemaVersion": 1,
+	"id": "rouge",
+	"version": "${version}",
+	"name": "Rouge",
+	"description": "An in-game AI chat assistant for redstone, accessed entirely through Minecraft chat via OpenRouter.",
+	"authors": [
+		"Dhanika"
+	],
+	"contact": {},
+	"license": "MIT",
+	"icon": "assets/rouge/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dev.dhanika.rouge.RougeClient"
+		]
+	},
+	"depends": {
+		"fabricloader": ">=0.15",
+		"minecraft": "~1.20.1",
+		"java": ">=17",
+		"fabric-api": "*"
+	}
+}
