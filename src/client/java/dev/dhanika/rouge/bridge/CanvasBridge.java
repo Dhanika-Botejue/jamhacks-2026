@@ -31,12 +31,36 @@ public final class CanvasBridge {
     public static final int PORT = 25599;
 
     private static HttpServer server;
+    private static SketchCompiler compiler;
 
     private CanvasBridge() {
     }
 
-    public static void start(SketchCompiler compiler) {
+    /** Supplies the compiler the bridge hands sketches to. Called once at mod init. */
+    public static void init(SketchCompiler sketchCompiler) {
+        compiler = sketchCompiler;
+    }
+
+    public static boolean isRunning() {
+        return server != null;
+    }
+
+    /** Stops the bridge and frees the port. Safe to call when not running. */
+    public static void stop() {
+        if (server == null) {
+            return;
+        }
+        server.stop(0);
+        server = null;
+        LOGGER.info("[Rouge] Canvas bridge stopped.");
+    }
+
+    public static void start() {
         if (server != null) {
+            return;
+        }
+        if (compiler == null) {
+            LOGGER.warn("[Rouge] Canvas bridge not initialised — call CanvasBridge.init() first.");
             return;
         }
         try {
