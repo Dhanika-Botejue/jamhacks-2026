@@ -2,6 +2,7 @@ package dev.dhanika.rouge.teach;
 
 import dev.dhanika.rouge.build.BlockEntry;
 import dev.dhanika.rouge.build.StepPlan;
+import dev.dhanika.rouge.build.WorldPlacer;
 import dev.dhanika.rouge.chat.ChatDisplay;
 import dev.dhanika.rouge.render.GhostRenderer;
 import net.minecraft.client.Minecraft;
@@ -29,6 +30,7 @@ public final class StepSession {
     private static StepPlan plan;
     private static int stepIndex;
     private static BlockPos anchor;
+    private static boolean placeMode = false;
 
     private StepSession() {}
 
@@ -38,6 +40,14 @@ public final class StepSession {
 
     /** Begins a build: anchors it in front of the player and shows step 1. */
     public static void start(StepPlan p) {
+        start(p, false);
+    }
+
+    /**
+     * Begins a build in hologram or place mode. In place mode (creative/singleplayer only)
+     * each step's blocks are placed into the world when the player confirms.
+     */
+    public static void start(StepPlan p, boolean place) {
         int total = p.steps().size();
         if (total == 0) {
             ChatDisplay.system("That build came back empty — ask me to try again, or describe it differently.");
@@ -47,6 +57,7 @@ public final class StepSession {
 
         plan = p;
         stepIndex = 0;
+        placeMode = place;
         anchor = computeAnchor();
 
         ChatDisplay.system("Building " + p.circuit() + " — " + total + " step"
@@ -86,12 +97,22 @@ public final class StepSession {
             ChatDisplay.system("No active build. Ask me to teach you something to start one.");
             return Advance.INACTIVE;
         }
+        if (placeMode) {
+            List<BlockEntry> toPlace = blocksAddedThisStep();
+            if (!WorldPlacer.placeStepBlocks(toPlace, anchor)) {
+                ChatDisplay.system("Place mode requires singleplayer. Falling back to hologram mode.");
+                placeMode = false;
+            }
+        }
         stepIndex++;
         if (stepIndex >= plan.steps().size()) {
             String circuit = plan.circuit();
             GhostRenderer.clear();
             plan = null;
-            ChatDisplay.system("That's the whole " + circuit + " — nice work! The hologram's cleared. Ask me for another build any time.");
+            String finish = placeMode
+                    ? "That's the whole " + circuit + " — blocks placed! Ask me for another build any time."
+                    : "That's the whole " + circuit + " — nice work! The hologram's cleared. Ask me for another build any time.";
+            ChatDisplay.system(finish);
             return Advance.DONE;
         }
         showStep();
@@ -119,6 +140,7 @@ public final class StepSession {
         plan = null;
         stepIndex = 0;
         anchor = null;
+        placeMode = false;
         GhostRenderer.clear();
     }
 
@@ -143,10 +165,18 @@ public final class StepSession {
         if (!step.explanation().isBlank()) {
             ChatDisplay.print(step.explanation());
         }
-        if (stepIndex + 1 < total) {
-            ChatDisplay.system("Place the glowing blocks, then say \"next\" when you're ready (or ask me anything).");
+        if (placeMode) {
+            if (stepIndex + 1 < total) {
+                ChatDisplay.system("Say \"next\" to place these blocks and continue (or ask me anything).");
+            } else {
+                ChatDisplay.system("Last step — say \"next\" to place the blocks and finish.");
+            }
         } else {
-            ChatDisplay.system("Last step — place the glowing blocks, then say \"next\" to finish.");
+            if (stepIndex + 1 < total) {
+                ChatDisplay.system("Place the glowing blocks, then say \"next\" when you're ready (or ask me anything).");
+            } else {
+                ChatDisplay.system("Last step — place the glowing blocks, then say \"next\" to finish.");
+            }
         }
     }
 
@@ -177,10 +207,21 @@ public final class StepSession {
      * we translate it to a predictable, visible spot and report where that is.
      */
     private static BlockPos computeAnchor() {
-        Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null || plan == null) return BlockPos.ZERO;
+        if (plan == null) return BlockPos.ZERO;
+        List<BlockEntry> all = new ArrayList<>();
+        for (StepPlan.Step step : plan.steps()) all.addAll(step.blocks());
+        return computeAnchorFor(all);
+    }
 
-        int[] b = footprint();                 // [minX,maxX, minY,maxY, minZ,maxZ] in build-local coords
+    /**
+     * Computes a world anchor for an arbitrary flat block list (e.g. a planning preview).
+     * Centers the footprint a few blocks ahead of the player at foot level.
+     */
+    public static BlockPos computeAnchorFor(List<BlockEntry> blocks) {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null) return BlockPos.ZERO;
+
+        int[] b = footprintOf(blocks);
         int minX = b[0], maxX = b[1], minY = b[2], minZ = b[4], maxZ = b[5];
         double localCenterX = (minX + maxX) / 2.0;
         double localCenterZ = (minZ + maxZ) / 2.0;
@@ -188,38 +229,40 @@ public final class StepSession {
         Direction facing = mc.player.getDirection();
         BlockPos feet = mc.player.blockPosition();
 
-        // Push the build's center forward so the near edge clears the player.
         int width = maxX - minX + 1;
         int depth = maxZ - minZ + 1;
         int ahead = 2 + Math.max(width, depth) / 2;
         int centerX = feet.getX() + facing.getStepX() * ahead;
         int centerZ = feet.getZ() + facing.getStepZ() * ahead;
 
-        // anchor so that anchor + localCenter == world center, and the build's bottom sits at feet level.
         int anchorX = (int) Math.round(centerX - localCenterX);
         int anchorZ = (int) Math.round(centerZ - localCenterZ);
         int anchorY = feet.getY() - minY;
         return new BlockPos(anchorX, anchorY, anchorZ);
     }
 
-    /**
-     * Bounding box of the whole build in build-local coordinates, as
-     * {@code [minX,maxX, minY,maxY, minZ,maxZ]}. Scans every step so it's correct even if
-     * the last step isn't strictly cumulative. Defaults to a unit box for an empty build.
-     */
+    /** Bounding box of the active plan, delegating to footprintOf with all plan blocks. */
     private static int[] footprint() {
+        if (plan == null) return new int[]{0, 0, 0, 0, 0, 0};
+        List<BlockEntry> all = new ArrayList<>();
+        for (StepPlan.Step step : plan.steps()) all.addAll(step.blocks());
+        return footprintOf(all);
+    }
+
+    /**
+     * Bounding box of an arbitrary block list as {@code [minX,maxX, minY,maxY, minZ,maxZ]}.
+     * Pass {@code null} to get a zero box.
+     */
+    private static int[] footprintOf(List<BlockEntry> blocks) {
+        if (blocks == null || blocks.isEmpty()) return new int[]{0, 0, 0, 0, 0, 0};
         int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
         int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
-        if (plan != null) {
-            for (StepPlan.Step step : plan.steps()) {
-                for (BlockEntry e : step.blocks()) {
-                    minX = Math.min(minX, e.x()); maxX = Math.max(maxX, e.x());
-                    minY = Math.min(minY, e.y()); maxY = Math.max(maxY, e.y());
-                    minZ = Math.min(minZ, e.z()); maxZ = Math.max(maxZ, e.z());
-                }
-            }
+        for (BlockEntry e : blocks) {
+            minX = Math.min(minX, e.x()); maxX = Math.max(maxX, e.x());
+            minY = Math.min(minY, e.y()); maxY = Math.max(maxY, e.y());
+            minZ = Math.min(minZ, e.z()); maxZ = Math.max(maxZ, e.z());
         }
-        if (minX > maxX) return new int[]{0, 0, 0, 0, 0, 0}; // no blocks
+        if (minX > maxX) return new int[]{0, 0, 0, 0, 0, 0};
         return new int[]{minX, maxX, minY, maxY, minZ, maxZ};
     }
 }

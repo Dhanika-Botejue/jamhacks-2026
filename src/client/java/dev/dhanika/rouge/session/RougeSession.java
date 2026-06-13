@@ -5,9 +5,11 @@ import dev.dhanika.rouge.ai.OpenRouterClient;
 import dev.dhanika.rouge.ai.OpenRouterConfig;
 import dev.dhanika.rouge.build.BuildDirective;
 import dev.dhanika.rouge.build.CircuitLibrary;
+import dev.dhanika.rouge.build.PlanningOutline;
 import dev.dhanika.rouge.build.StepPlan;
 import dev.dhanika.rouge.chat.ChatDisplay;
 import dev.dhanika.rouge.prompt.SystemPrompts;
+import dev.dhanika.rouge.render.GhostRenderer;
 import dev.dhanika.rouge.teach.StepSession;
 import net.minecraft.client.Minecraft;
 
@@ -27,6 +29,9 @@ import java.util.regex.Pattern;
  *   <li>{@code CHAT} — normal redstone Q&A. When the AI proposes a build (a
  *       {@code ```rougebuild} / {@code ```stepplan} fence), it is parsed and held as a
  *       pending plan, and Rouge asks the player to confirm.</li>
+ *   <li>{@code PLANNING} — collaborative design phase. The AI has emitted a
+ *       {@code ```rougeplanning} outline; the player can refine it in conversation. Saying
+ *       "build it" sends the AI a commit prompt; saying "cancel" returns to CHAT.</li>
  *   <li>{@code CONFIRM_BUILD} — waiting on yes/no before starting the build. "Yes" starts
  *       the step-by-step hologram; "no" discards it; anything else is treated as a follow-up
  *       and routed back to the AI to refine the design.</li>
@@ -39,11 +44,15 @@ public final class RougeSession {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("rouge");
 
-    private enum Mode { CHAT, CONFIRM_BUILD, BUILDING }
+    private enum Mode { CHAT, PLANNING, CONFIRM_BUILD, BUILDING }
 
-    // Matches either fence name and captures the JSON body.
+    // Matches rougebuild / stepplan fences and captures the JSON body.
     private static final Pattern FENCE =
             Pattern.compile("```(?:rougebuild|stepplan)\\s*\\n([\\s\\S]*?)\\n?```", Pattern.DOTALL);
+
+    // Matches rougeplanning fences and captures the JSON body.
+    private static final Pattern PLANNING_FENCE =
+            Pattern.compile("```rougeplanning\\s*\\n([\\s\\S]*?)\\n?```", Pattern.DOTALL);
 
     // How many recent conversation messages (user+assistant) to resend each turn.
     // The system prompt and library context are always re-injected separately, so this
@@ -54,12 +63,17 @@ public final class RougeSession {
     // directive before falling back to asking the player to clarify.
     private static final int MAX_REPAIR_ATTEMPTS = 1;
 
+    /** Build output mode: HOLOGRAM shows ghost blocks; PLACE actually places them (creative/SP only). */
+    public enum BuildMode { HOLOGRAM, PLACE }
+
     private static OpenRouterClient client;
     private static OpenRouterConfig config;
     private static boolean open = false;
     private static boolean awaitingReply = false;
     private static Mode mode = Mode.CHAT;
+    private static BuildMode buildMode = BuildMode.HOLOGRAM;
     private static StepPlan pendingPlan;
+    private static PlanningOutline pendingOutline;
     private static int repairAttempts = 0;
     private static String lastQuery = "";
     private static final List<ChatMessage> history = new ArrayList<>();
@@ -75,6 +89,10 @@ public final class RougeSession {
 
     public static void setModel(String id) { config.setModel(id); }
 
+    public static BuildMode getBuildMode() { return buildMode; }
+
+    public static void setBuildMode(BuildMode m) { buildMode = m; }
+
     public static boolean isOpen() { return open; }
 
     public static void toggle() {
@@ -82,11 +100,27 @@ public final class RougeSession {
         else openSession();
     }
 
+    /**
+     * Opens a session (if not already open) and primes it for interactive planning mode.
+     * The next message from the player will trigger a rougeplanning outline instead of an
+     * immediate build directive.
+     */
+    public static void openInteractive() {
+        if (!open) openSession();
+        // Inject a one-shot system note into history so the AI knows to use planning mode
+        // on the very next user message, without spending an API call upfront.
+        history.add(ChatMessage.system(
+                "The player has explicitly requested interactive planning mode. For their next build request, "
+                + "respond with a rougeplanning outline fence — do NOT jump straight to a rougebuild."));
+        ChatDisplay.system("Interactive mode on. Describe the build you want — we'll plan it together before building.");
+    }
+
     private static void openSession() {
         open = true;
         awaitingReply = false;
         mode = Mode.CHAT;
         pendingPlan = null;
+        pendingOutline = null;
         repairAttempts = 0;
         lastQuery = "";
         history.clear();
@@ -100,6 +134,8 @@ public final class RougeSession {
         awaitingReply = false;
         mode = Mode.CHAT;
         pendingPlan = null;
+        pendingOutline = null;
+        GhostRenderer.clearPreview();
         repairAttempts = 0;
         lastQuery = "";
         history.clear();
@@ -112,6 +148,7 @@ public final class RougeSession {
         awaitingReply = false;
         mode = Mode.CHAT;
         pendingPlan = null;
+        pendingOutline = null;
         repairAttempts = 0;
         lastQuery = "";
         history.clear();
@@ -125,11 +162,35 @@ public final class RougeSession {
         switch (mode) {
             case CONFIRM_BUILD -> handleConfirm(text);
             case BUILDING -> handleBuilding(text);
+            case PLANNING -> handlePlanning(text);
             case CHAT -> sendToAi(text);
         }
     }
 
     // --- mode handlers ---
+
+    private static void handlePlanning(String text) {
+        switch (Affirmation.of(text)) {
+            case YES -> {
+                // Player approved the outline — ask AI to commit it as a build directive.
+                // Keep the preview hologram visible until the real build hologram takes over.
+                String circuit = pendingOutline != null ? pendingOutline.circuit() : "the design we discussed";
+                pendingOutline = null;
+                mode = Mode.CHAT;
+                sendToAi("Looks good — go ahead and generate the rougebuild directive for " + circuit + ".");
+            }
+            case NO -> {
+                pendingOutline = null;
+                GhostRenderer.clearPreview();
+                mode = Mode.CHAT;
+                ChatDisplay.system("Planning cancelled. Ask me anything else, or describe a different build.");
+            }
+            case OTHER -> {
+                // Treat as a refinement — AI will re-emit an updated rougeplanning fence.
+                sendToAi(text);
+            }
+        }
+    }
 
     private static void handleConfirm(String text) {
         switch (Affirmation.of(text)) {
@@ -137,7 +198,7 @@ public final class RougeSession {
                 StepPlan plan = pendingPlan;
                 pendingPlan = null;
                 mode = Mode.BUILDING;
-                StepSession.start(plan);
+                StepSession.start(plan, buildMode == BuildMode.PLACE);
                 if (!StepSession.isActive()) {
                     mode = Mode.CHAT; // start() bailed (empty plan)
                 }
@@ -219,6 +280,12 @@ public final class RougeSession {
                         ctx + " Answer their question concisely; do NOT emit a new build unless they ask to change the design."));
             }
         }
+        if (mode == Mode.PLANNING && pendingOutline != null) {
+            request.add(ChatMessage.system(
+                    "ACTIVE PLANNING: " + pendingOutline.circuit() + ". The player is reviewing and refining the "
+                    + "build plan. Re-emit a rougeplanning fence with any updates, OR emit a rougebuild fence "
+                    + "only if the player explicitly asks to build."));
+        }
         // Recent dialogue window (everything after the persona prompt at index 0).
         int from = Math.max(1, history.size() - MAX_HISTORY_MESSAGES);
         request.addAll(history.subList(from, history.size()));
@@ -234,6 +301,30 @@ public final class RougeSession {
         if (err != null) {
             removeTrailingUserMessage();
             ChatDisplay.error(rootMessage(err));
+            return;
+        }
+
+        // Check for a planning outline fence first (takes priority over build fences).
+        Matcher pm = PLANNING_FENCE.matcher(reply);
+        if (pm.find() && mode != Mode.BUILDING) {
+            String outlineJson = pm.group(1).trim();
+            String chatPart = PLANNING_FENCE.matcher(reply).replaceAll("").trim();
+            try {
+                pendingOutline = PlanningOutline.fromJson(outlineJson);
+                mode = Mode.PLANNING;
+                history.add(ChatMessage.assistant(chatPart.isEmpty() ? "[planning outline]" : chatPart));
+                if (!chatPart.isEmpty()) ChatDisplay.print(chatPart);
+                ChatDisplay.plan(pendingOutline);
+                // Show preview hologram if the outline includes block data.
+                if (!pendingOutline.preview().isEmpty()) {
+                    net.minecraft.core.BlockPos anchor = StepSession.computeAnchorFor(pendingOutline.preview());
+                    GhostRenderer.showPreview(anchor, pendingOutline.preview());
+                }
+            } catch (Exception e) {
+                LOGGER.warn("[Rouge] Failed to parse planning outline: {}", e.getMessage(), e);
+                history.add(ChatMessage.assistant(reply));
+                ChatDisplay.print(reply);
+            }
             return;
         }
 
@@ -255,8 +346,10 @@ public final class RougeSession {
                 StepPlan plan = BuildDirective.resolve(planJson);
                 if (plan.steps().isEmpty()) throw new IllegalStateException("empty plan");
 
+                pendingOutline = null;
+                GhostRenderer.clearPreview();
                 mode = Mode.BUILDING;
-                StepSession.start(plan);
+                StepSession.start(plan, buildMode == BuildMode.PLACE);
                 if (!StepSession.isActive()) {
                     mode = Mode.CHAT;
                 }
