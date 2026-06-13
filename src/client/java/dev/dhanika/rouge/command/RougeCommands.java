@@ -1,20 +1,18 @@
 package dev.dhanika.rouge.command;
 
+import com.mojang.brigadier.arguments.StringArgumentType;
+import dev.dhanika.rouge.bridge.CanvasBridge;
+import dev.dhanika.rouge.build.Difficulty;
+import dev.dhanika.rouge.chat.ChatDisplay;
 import dev.dhanika.rouge.session.RougeSession;
+import dev.dhanika.rouge.teach.LessonManager;
+import dev.dhanika.rouge.teach.StepSession;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandManager;
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback;
 
-/**
- * Registers Rouge's client-side commands.
- * <p>
- * {@code /rouge} is a toggle: first use opens a session, second closes it. Adding
- * a future command (e.g. {@code /rougebuild}) is one more {@code dispatcher.register}
- * line inside the callback below — no other wiring needed.
- */
 public final class RougeCommands {
 
-    private RougeCommands() {
-    }
+    private RougeCommands() {}
 
     public static void register() {
         ClientCommandRegistrationCallback.EVENT.register((dispatcher, registryAccess) ->
@@ -22,6 +20,91 @@ public final class RougeCommands {
                         .executes(ctx -> {
                             RougeSession.toggle();
                             return 1;
-                        })));
+                        })
+                        .then(ClientCommandManager.literal("next")
+                                .executes(ctx -> {
+                                    StepSession.next();
+                                    return 1;
+                                }))
+                        .then(ClientCommandManager.literal("step")
+                                .executes(ctx -> {
+                                    StepSession.showCurrent();
+                                    return 1;
+                                }))
+                        .then(ClientCommandManager.literal("move")
+                                .executes(ctx -> {
+                                    StepSession.recenter();
+                                    return 1;
+                                }))
+                        .then(ClientCommandManager.literal("stop")
+                                .executes(ctx -> {
+                                    StepSession.stop();
+                                    return 1;
+                                }))
+                        .then(ClientCommandManager.literal("model")
+                                .then(ClientCommandManager.argument("id", StringArgumentType.greedyString())
+                                        .executes(ctx -> {
+                                            String id = StringArgumentType.getString(ctx, "id");
+                                            RougeSession.setModel(id);
+                                            ChatDisplay.system("Model set to: " + id);
+                                            return 1;
+                                        }))
+                                .executes(ctx -> {
+                                    ChatDisplay.system("Current model: " + RougeSession.getModel());
+                                    return 1;
+                                }))
+                        // --- Canvas mode: sketch → AI → Litematica overlay (toggled on/off) ---
+                        .then(ClientCommandManager.literal("canvas")
+                                .then(ClientCommandManager.literal("on")
+                                        .executes(ctx -> {
+                                            if (CanvasBridge.isRunning()) {
+                                                ChatDisplay.system("Canvas mode is already on (listening on port "
+                                                        + CanvasBridge.PORT + ").");
+                                            } else {
+                                                CanvasBridge.start();
+                                                ChatDisplay.system("Canvas mode on. Open canvas/index.html, sketch a "
+                                                        + "circuit, and hit \"Build in Minecraft\". Then: /rouge load, "
+                                                        + "/rouge level, /rouge solution, /rouge check.");
+                                            }
+                                            return 1;
+                                        }))
+                                .then(ClientCommandManager.literal("off")
+                                        .executes(ctx -> {
+                                            CanvasBridge.stop();
+                                            ChatDisplay.system("Canvas mode off.");
+                                            return 1;
+                                        }))
+                                .executes(ctx -> {
+                                    ChatDisplay.system("Canvas mode is " + (CanvasBridge.isRunning() ? "on" : "off")
+                                            + ". Use /rouge canvas on|off.");
+                                    return 1;
+                                }))
+                        // --- Lesson actions (canvas mode) ---
+                        .then(ClientCommandManager.literal("load")
+                                .executes(ctx -> {
+                                    LessonManager.loadSample();
+                                    return 1;
+                                }))
+                        .then(ClientCommandManager.literal("solution")
+                                .executes(ctx -> {
+                                    LessonManager.placeSolution();
+                                    return 1;
+                                }))
+                        .then(ClientCommandManager.literal("check")
+                                .executes(ctx -> {
+                                    LessonManager.check();
+                                    return 1;
+                                }))
+                        .then(ClientCommandManager.literal("level")
+                                .then(ClientCommandManager.argument("level", StringArgumentType.word())
+                                        .executes(ctx -> {
+                                            String name = StringArgumentType.getString(ctx, "level");
+                                            LessonManager.setLevel(Difficulty.Level.of(name));
+                                            return 1;
+                                        }))
+                                .executes(ctx -> {
+                                    ChatDisplay.system("Usage: /rouge level basic|easy|medium|hard");
+                                    return 1;
+                                }))));
     }
 }

@@ -1,0 +1,53 @@
+{
+  "id": "bud-switch",
+  "title": "BUD Switch (Block Update Detector)",
+  "category": "detection",
+  "description": "Detects block updates (block placed, broken, or state changed) adjacent to a quasi-powered piston. The piston is powered by redstone through a diagonal path, putting it in a quasi-powered state — any block update in its update zone triggers it to extend momentarily. Used in advanced farms and hidden triggers.",
+  "aliases": ["block update detector", "bud", "quasi powered piston"],
+  "inputs": ["block_update"],
+  "outputs": ["pulse"],
+  "footprint": "3x3x2",
+  "steps": [
+    {
+      "title": "Foundation",
+      "explanation": "3-wide, 2-deep stone base, 3 tall. The piston sits at ground level; the quasi-power source is one layer above and behind it.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "Piston placement",
+      "explanation": "Place a regular piston at (1,1,0) facing east. This piston will be quasi-powered — it sees power diagonally from above but won't extend until a block update occurs near it.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:piston[extended=false,facing=east]"}
+      ]
+    },
+    {
+      "title": "Quasi-power source",
+      "explanation": "Place a solid block at (1,2,0) directly above the piston. Place a redstone torch on the SIDE (south face) of that block at (1,2,0) — this powers the block at y=2 which 'quasi-powers' the piston at y=1 below. In Minecraft, pistons check for power one block above their position as well.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:piston[extended=false,facing=east]"},
+        {"x":1,"y":2,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":2,"z":1,"block":"minecraft:redstone_torch"}
+      ]
+    },
+    {
+      "title": "Observer output",
+      "explanation": "Place an observer at (2,1,0) facing west (observing the piston's face). When any block update occurs adjacent to the quasi-powered piston, it briefly extends — the observer detects the state change and emits a pulse east. A lamp at (2,0,-1) shows the pulse. Place or break a block near (0,1,0) to trigger it.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:piston[extended=false,facing=east]"},
+        {"x":1,"y":2,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":2,"z":1,"block":"minecraft:redstone_torch"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:observer[facing=west,powered=false]"},
+        {"x":2,"y":0,"z":-1,"block":"minecraft:redstone_lamp"}
+      ]
+    }
+  ]
+}

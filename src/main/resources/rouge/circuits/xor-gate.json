@@ -1,0 +1,90 @@
+{
+  "id": "xor-gate",
+  "title": "XOR Gate",
+  "category": "logic",
+  "description": "Output is ON when inputs DIFFER (A=0,B=1 or A=1,B=0). Off when both are ON or both OFF. Built with two NAND gates and an AND gate following the identity XOR(A,B) = AND(NAND(A,B), OR(A,B)).",
+  "aliases": ["exclusive or", "xor", "difference gate"],
+  "inputs": ["input_a", "input_b"],
+  "outputs": ["output"],
+  "footprint": "7x2x3",
+  "steps": [
+    {
+      "title": "Foundation",
+      "explanation": "Lay a 7-wide, 3-deep stone base. Signal paths for A and B run along z=0 and z=2; the NAND and OR merge paths converge in the middle.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},{"x":5,"y":0,"z":0,"block":"minecraft:stone"},{"x":6,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},{"x":4,"y":0,"z":1,"block":"minecraft:stone"},{"x":5,"y":0,"z":1,"block":"minecraft:stone"},{"x":6,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},{"x":3,"y":0,"z":2,"block":"minecraft:stone"},{"x":4,"y":0,"z":2,"block":"minecraft:stone"},{"x":5,"y":0,"z":2,"block":"minecraft:stone"},{"x":6,"y":0,"z":2,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "Input levers A and B",
+      "explanation": "Lever A at (0,1,0), lever B at (0,1,2). Each lever drives two paths: one toward the NAND side (x=1-2) and one toward the OR merge (x=3).",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},{"x":5,"y":0,"z":0,"block":"minecraft:stone"},{"x":6,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},{"x":4,"y":0,"z":1,"block":"minecraft:stone"},{"x":5,"y":0,"z":1,"block":"minecraft:stone"},{"x":6,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},{"x":3,"y":0,"z":2,"block":"minecraft:stone"},{"x":4,"y":0,"z":2,"block":"minecraft:stone"},{"x":5,"y":0,"z":2,"block":"minecraft:stone"},{"x":6,"y":0,"z":2,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":0,"y":1,"z":2,"block":"minecraft:lever[face=floor,facing=north,powered=false]"}
+      ]
+    },
+    {
+      "title": "NAND stage (invert AND path)",
+      "explanation": "Dust from A runs along z=0 to x=2; dust from B runs z=2 to x=2. At x=2 both merge onto z=1 dust. A wall torch on the east face of the block at (2,0,1) inverts: NOT(A AND B). That torch output is the NAND result on the high path.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},{"x":5,"y":0,"z":0,"block":"minecraft:stone"},{"x":6,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},{"x":4,"y":0,"z":1,"block":"minecraft:stone"},{"x":5,"y":0,"z":1,"block":"minecraft:stone"},{"x":6,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},{"x":3,"y":0,"z":2,"block":"minecraft:stone"},{"x":4,"y":0,"z":2,"block":"minecraft:stone"},{"x":5,"y":0,"z":2,"block":"minecraft:stone"},{"x":6,"y":0,"z":2,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":0,"y":1,"z":2,"block":"minecraft:lever[face=floor,facing=north,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":2,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":2,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":3,"y":0,"z":1,"block":"minecraft:redstone_wall_torch[facing=east,lit=true]"}
+      ]
+    },
+    {
+      "title": "OR stage (raw A or B path)",
+      "explanation": "Separately, dust from A at (1,1,0) and dust from B at (1,1,2) converge at (1,1,1) — that is an OR gate by merging. Carry the OR result east to x=4 using dust along z=1.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},{"x":5,"y":0,"z":0,"block":"minecraft:stone"},{"x":6,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},{"x":4,"y":0,"z":1,"block":"minecraft:stone"},{"x":5,"y":0,"z":1,"block":"minecraft:stone"},{"x":6,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},{"x":3,"y":0,"z":2,"block":"minecraft:stone"},{"x":4,"y":0,"z":2,"block":"minecraft:stone"},{"x":5,"y":0,"z":2,"block":"minecraft:stone"},{"x":6,"y":0,"z":2,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":0,"y":1,"z":2,"block":"minecraft:lever[face=floor,facing=north,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":2,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":2,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":3,"y":0,"z":1,"block":"minecraft:redstone_wall_torch[facing=east,lit=true]"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":4,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":5,"y":1,"z":1,"block":"minecraft:redstone_wire"}
+      ]
+    },
+    {
+      "title": "AND merge + output lamp",
+      "explanation": "NAND output from torch at x=3,z=1 and OR output at x=4,z=1 both arrive at x=5,z=1 dust. A wall torch at (5,0,1) facing east inverts: NOT(NAND) AND OR = XOR. Lamp at (6,0,1) lights only when A≠B.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},{"x":5,"y":0,"z":0,"block":"minecraft:stone"},{"x":6,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},{"x":4,"y":0,"z":1,"block":"minecraft:stone"},{"x":5,"y":0,"z":1,"block":"minecraft:stone"},{"x":6,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},{"x":3,"y":0,"z":2,"block":"minecraft:stone"},{"x":4,"y":0,"z":2,"block":"minecraft:stone"},{"x":5,"y":0,"z":2,"block":"minecraft:stone"},{"x":6,"y":0,"z":2,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":0,"y":1,"z":2,"block":"minecraft:lever[face=floor,facing=north,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":2,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":2,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":3,"y":0,"z":1,"block":"minecraft:redstone_wall_torch[facing=east,lit=true]"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":4,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":5,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":6,"y":0,"z":1,"block":"minecraft:redstone_lamp"}
+      ]
+    }
+  ]
+}

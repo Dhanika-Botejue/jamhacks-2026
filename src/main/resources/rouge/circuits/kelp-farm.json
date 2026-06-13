@@ -1,0 +1,8 @@
+{
+  "id": "kelp-farm",
+  "title": "Kelp Farm",
+  "category": "farm",
+  "description": "An automated kelp farm that uses pistons to break the kelp column, collects drops via a water stream into hoppers, and can feed a furnace array for dried kelp (fuel and food). Kelp grows upward in water — an observer or clock triggers a piston to break it at 1 block above the base. Requires at least 2 blocks of water depth. The base kelp block remains attached to the sand floor to restart growth.",
+  "aliases": ["kelp", "dried kelp farm", "kelp smelter"],
+  "footprint": "4x6x4"
+}

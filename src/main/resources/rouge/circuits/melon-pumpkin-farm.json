@@ -1,0 +1,8 @@
+{
+  "id": "melon-pumpkin-farm",
+  "title": "Melon / Pumpkin Farm",
+  "category": "farm",
+  "description": "A semi-automatic melon or pumpkin farm using observers and pistons. Melon/pumpkin stems grow from seeds on farmland; when the fruit block grows adjacent to the stem an observer detects the block update and fires a piston that breaks the fruit. Drops are collected in a water stream leading to hoppers and a chest. Each stem needs one adjacent dirt/farmland tile for the fruit to spawn. Pistons face the fruit position; observers face the stem. Requires light level 9+ and hoed farmland.",
+  "aliases": ["melon farm", "pumpkin farm", "fruit farm", "gourd farm"],
+  "footprint": "8x3x8"
+}
