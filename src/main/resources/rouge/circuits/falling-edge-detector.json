@@ -1,0 +1,62 @@
+{
+  "id": "falling-edge-detector",
+  "title": "Falling Edge Detector",
+  "category": "detection",
+  "description": "Emits a single 1-tick pulse when a signal turns OFF (falling edge). Built with a NOT gate and a repeater creating a brief overlap: when input goes low the NOT torch lights immediately, but the repeater-delayed copy of the old high signal briefly suppresses it — net result is one pulse on the falling edge.",
+  "aliases": ["falling edge", "signal-off detector", "off pulse"],
+  "inputs": ["signal"],
+  "outputs": ["pulse"],
+  "footprint": "4x2x1",
+  "steps": [
+    {
+      "title": "Foundation",
+      "explanation": "4-wide, 1-deep stone base. Signal enters from x=0, NOT torch is at x=1, repeater provides the delayed copy at x=2.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "Input lever",
+      "explanation": "Lever at (0,1,0). Dust at (0,1,0) fans both east to the repeater and into the NOT branch. Keep it ON to set up — the pulse fires when you turn it OFF.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=true]"}
+      ]
+    },
+    {
+      "title": "NOT branch + repeater delay",
+      "explanation": "Dust at (0,1,0) powers block at (1,0,0), so its east-face torch (NOT gate at (1,0,0) facing east) is OFF while lever is ON. A repeater at (1,1,0) facing east with delay=1 also passes the raw signal to (2,1,0).",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=true]"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:redstone_wall_torch[facing=east,lit=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:repeater[delay=1,facing=east,locked=false,powered=true]"}
+      ]
+    },
+    {
+      "title": "Output lamp",
+      "explanation": "Dust at (3,1,0) — connected to NOT torch output and the repeater output. Normally the repeater keeps (3,1,0) powered so the NOT torch can't fire the lamp. When lever turns OFF: NOT lights immediately, repeater still holds 1 tick, creating a 1-tick pulse at (3,1,0) before the repeater drops. Lamp at (3,0,-1) flashes once.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=true]"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:redstone_wall_torch[facing=east,lit=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:repeater[delay=1,facing=east,locked=false,powered=true]"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":3,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":3,"y":0,"z":-1,"block":"minecraft:redstone_lamp"}
+      ]
+    }
+  ]
+}

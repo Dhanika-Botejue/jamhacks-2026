@@ -1,0 +1,8 @@
+{
+  "id": "enderman-farm",
+  "title": "Enderman Farm",
+  "category": "farm",
+  "description": "An enderman XP farm built on the End island or floating platforms in the End dimension. Endermen spawn naturally in the End — a large dark platform at Y=128 maximizes spawns. Endermen fall through a 3-block tall enclosure (they cannot teleport if you look through glass) into a drop chamber. A 43-block fall brings them to half a heart; the player kills them for XP and ender pearls. A water stream collects the ender pearls into hoppers. One of the best XP farms in the game.",
+  "aliases": ["enderman xp farm", "ender pearl farm", "end farm", "xp farm end"],
+  "footprint": "30x10x30"
+}

@@ -1,0 +1,47 @@
+{
+  "id": "item-filter",
+  "title": "Item Filter (Hopper)",
+  "category": "utility",
+  "description": "Sorts one specific item type into a dedicated chest using a hopper with named/locked slots. The filter hopper sits below a main chest; five named items in the hopper slots lock each slot to that item type only. Non-matching items pass through to the output chest below.",
+  "aliases": ["hopper filter", "item sorter single", "item filter hopper", "sorting hopper"],
+  "inputs": ["items_in"],
+  "outputs": ["filtered_items", "overflow"],
+  "footprint": "2x4x1",
+  "steps": [
+    {
+      "title": "Input chest",
+      "explanation": "Place a chest at (0,3,0). This is where all mixed items enter. Items will flow downward through the hopper chain.",
+      "blocks": [
+        {"x":0,"y":3,"z":0,"block":"minecraft:chest[facing=south,type=single]"}
+      ]
+    },
+    {
+      "title": "Filter hopper",
+      "explanation": "Place a hopper at (0,2,0) pointing down (hopper's output faces down by default when placed under a chest). Fill all 5 hopper slots with the item you want to filter (e.g. 5 diamonds). This locks those slots — only diamonds can flow through, everything else is rejected.",
+      "blocks": [
+        {"x":0,"y":3,"z":0,"block":"minecraft:chest[facing=south,type=single]"},
+        {"x":0,"y":2,"z":0,"block":"minecraft:hopper[enabled=true,facing=down]"}
+      ]
+    },
+    {
+      "title": "Filtered item chest",
+      "explanation": "Place a chest at (0,1,0) below the filter hopper. Matching items (diamonds in our example) land here. Non-matching items are not pulled through the filter hopper — they stay in the input chest.",
+      "blocks": [
+        {"x":0,"y":3,"z":0,"block":"minecraft:chest[facing=south,type=single]"},
+        {"x":0,"y":2,"z":0,"block":"minecraft:hopper[enabled=true,facing=down]"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:chest[facing=south,type=single]"}
+      ]
+    },
+    {
+      "title": "Overflow hopper",
+      "explanation": "Optionally add a second hopper at (0,2,0) pointed sideways into an overflow chest at (1,2,0). Any items that don't match the filter (remained in the input chest) can be routed sideways by a separate hopper beside the input chest. This gives you a complete two-output filter: filtered items go down, everything else goes sideways.",
+      "blocks": [
+        {"x":0,"y":3,"z":0,"block":"minecraft:chest[facing=south,type=single]"},
+        {"x":0,"y":2,"z":0,"block":"minecraft:hopper[enabled=true,facing=down]"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:chest[facing=south,type=single]"},
+        {"x":1,"y":3,"z":0,"block":"minecraft:hopper[enabled=true,facing=east]"},
+        {"x":1,"y":3,"z":-1,"block":"minecraft:chest[facing=south,type=single]"}
+      ]
+    }
+  ]
+}

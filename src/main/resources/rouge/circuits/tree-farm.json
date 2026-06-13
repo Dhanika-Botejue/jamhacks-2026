@@ -1,0 +1,8 @@
+{
+  "id": "tree-farm",
+  "title": "Semi-Auto Tree Farm",
+  "category": "farm",
+  "description": "A semi-automatic tree farm using pistons to harvest the bottom log of a tree, causing the rest to float and break. A sapling is replanted automatically by a dispenser or dropper with a bone meal dispenser to force instant growth. Commonly built for oak, birch, or spruce. The player triggers the harvest with a button; pistons break the base log, water streams collect the logs, and a hopper chain deposits them in a chest. Space saplings 1 block apart with 2+ blocks clearance above.",
+  "aliases": ["tree farm", "wood farm", "log farm", "auto tree"],
+  "footprint": "8x10x8"
+}

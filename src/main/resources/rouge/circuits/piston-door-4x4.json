@@ -1,0 +1,8 @@
+{
+  "id": "piston-door-4x4",
+  "title": "4x4 Piston Door",
+  "category": "door",
+  "description": "A flush 4x4 redstone door made of 8 sticky pistons (4 on each side). Each side has 4 sticky pistons stacked 2-high and 2-wide, all facing inward. The door blocks (any opaque block) fill the 4-wide, 4-tall opening when extended. When the piston retract, the opening clears. Triggered by a T flip-flop and a lever or pressure plate on both faces, wired symmetrically. Requires hidden wiring behind the walls. 4-wide doors need piston extenders on some rows to maintain flush appearance with the wall.",
+  "aliases": ["4x4 door", "large piston door", "4 wide door"],
+  "footprint": "8x6x4"
+}

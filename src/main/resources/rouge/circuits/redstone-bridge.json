@@ -1,0 +1,55 @@
+{
+  "id": "redstone-bridge",
+  "title": "Redstone Signal Bridge (Diagonal Cross)",
+  "category": "utility",
+  "description": "Crosses two redstone signals over each other in the same plane without interference, using a torch-based bridge. One signal travels east-west on the lower level; the other travels north-south on the upper level, crossing via a torch bridge so neither signal leaks into the other's path.",
+  "aliases": ["signal cross", "redstone cross", "wire bridge", "signal bridge", "redstone overpass"],
+  "inputs": ["signal_a", "signal_b"],
+  "outputs": ["signal_a_out", "signal_b_out"],
+  "footprint": "3x3x3",
+  "steps": [
+    {
+      "title": "East-west signal path (lower level)",
+      "explanation": "Stone base at y=0, z=1. Dust at (0,1,1), (1,1,1), (2,1,1) carries signal A from west to east along z=1. This is the horizontal signal running straight through.",
+      "blocks": [
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":1,"block":"minecraft:redstone_wire"}
+      ]
+    },
+    {
+      "title": "Bridge pillar",
+      "explanation": "Solid block at (1,2,1) — this is the bridge pillar. Signal B (north-south) will travel on TOP of this block while signal A travels underneath on y=1. The vertical separation keeps the two signals isolated.",
+      "blocks": [
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":2,"z":1,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "North-south signal path ramps",
+      "explanation": "Signal B enters from z=0 on a stone at (1,1,0). A dust at (1,1,0) starts the north ramp. It climbs to the bridge pillar at (1,2,1) via a stair-step: stone at (1,1,0) with dust on top, then dust on the pillar at (1,2,1). Similarly south ramp from pillar down to (1,1,2).",
+      "blocks": [
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":2,"z":1,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":2,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":0,"z":2,"block":"minecraft:stone"},
+        {"x":1,"y":1,"z":2,"block":"minecraft:redstone_wire"}
+      ]
+    }
+  ]
+}

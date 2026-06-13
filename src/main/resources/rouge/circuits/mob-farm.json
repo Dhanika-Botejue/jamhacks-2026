@@ -1,0 +1,8 @@
+{
+  "id": "mob-farm",
+  "title": "Mob Farm Tower",
+  "category": "farm",
+  "description": "A dark room tower that spawns hostile mobs (zombies, skeletons, creepers, spiders) above the player's position. Mobs spawn in pitch-dark chambers (light level 0), then fall down a drop shaft that deals near-lethal damage. A collection chamber at the bottom lets the player finish them with one hit for full XP and drops. The tower is typically 4 floors of 9x9 dark rooms connected by hoppers to a kill chamber. Requires no spawner — relies on natural mob spawning mechanics within 24-128 blocks of the player.",
+  "aliases": ["mob grinder", "xp farm", "mob tower", "dark room farm", "hostile mob farm"],
+  "footprint": "16x20x16"
+}

@@ -1,0 +1,8 @@
+{
+  "id": "mail-system",
+  "title": "Hopper Mail System",
+  "category": "storage",
+  "description": "A system for transporting items between rooms or players using hoppers and chests. Items placed in an input chest are routed through a series of hoppers or hopper-minecarts to reach a specific destination chest. Uses comparator signals to notify the receiver when mail arrives. Can be extended to support multiple destination addresses using sorted filter hoppers.",
+  "aliases": ["mail system", "hopper mail", "post office", "item post", "item transport system"],
+  "footprint": "15x3x3"
+}

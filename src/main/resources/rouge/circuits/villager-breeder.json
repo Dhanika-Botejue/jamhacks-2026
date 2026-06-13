@@ -1,0 +1,8 @@
+{
+  "id": "villager-breeder",
+  "title": "Villager Breeder",
+  "category": "farm",
+  "description": "An automated villager breeding station. Two willing villagers breed when they have enough food (12 bread, 12 carrots, 12 potatoes, or 12 beetroot each). A bed for each villager and one extra for the baby is required. Villagers throw food to each other through a 1-block gap. A dispenser drops bread into the pen automatically on a timer. Babies are funneled out through a minecart or water stream for use in trading halls or as cured zombie villagers.",
+  "aliases": ["villager farm", "village breeder", "trading hall feeder"],
+  "footprint": "6x4x6"
+}

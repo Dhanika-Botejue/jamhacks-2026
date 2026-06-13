@@ -1,0 +1,47 @@
+{
+  "id": "minecart-detector",
+  "title": "Minecart Detector",
+  "category": "detection",
+  "description": "Detects when a minecart passes over a specific point on a rail line. A detector rail emits a redstone signal (strength 15) when any minecart rests on it. Used in automatic rail switching, station stops, and cart dispatchers.",
+  "aliases": ["cart detector", "detector rail", "rail sensor", "minecart trigger"],
+  "inputs": [],
+  "outputs": ["cart_signal"],
+  "footprint": "3x2x1",
+  "steps": [
+    {
+      "title": "Foundation and rail bed",
+      "explanation": "3-wide, 1-deep stone base. The detector rail sits in the center (x=1); normal rails bookend it on x=0 and x=2 to keep the cart moving through.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "Rails",
+      "explanation": "Normal powered rail at (0,1,0) facing east-west. Detector rail at (1,1,0) — this is the sensor. Normal rail at (2,1,0). A minecart riding from x=0 to x=2 will pass over the detector rail and trigger it.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:rail[shape=east_west]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:detector_rail[powered=false,shape=east_west]"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:rail[shape=east_west]"}
+      ]
+    },
+    {
+      "title": "Output wire and lamp",
+      "explanation": "Dust at (1,1,1) — placed adjacent to the detector rail (detector rails output on all sides at y=0 and adjacent blocks). Dust carries signal to lamp at (1,0,-1). When a minecart rides over (1,1,0), the lamp lights. Signal lasts while the cart is on the rail.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:rail[shape=east_west]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:detector_rail[powered=false,shape=east_west]"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:rail[shape=east_west]"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":0,"z":-1,"block":"minecraft:redstone_lamp"}
+      ]
+    }
+  ]
+}
