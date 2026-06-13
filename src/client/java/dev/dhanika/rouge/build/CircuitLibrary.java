@@ -19,6 +19,9 @@ public final class CircuitLibrary {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("rouge");
 
+    /** Max library entries shown in full detail per request; the rest are listed as ids only. */
+    private static final int MAX_DETAILED = 12;
+
     private static final String[] IDS = {
             // Buildable primitives — hand-authored, verified block data.
             "4-bit-counter", "and-gate", "bubble-column-elevator", "bud-switch",
@@ -118,13 +121,15 @@ public final class CircuitLibrary {
         // Sort by score descending.
         scored.sort((a, b) -> Integer.compare(b.score, a.score));
 
-        // Show full details for the top scored ones (at least 8, and up to 15, or any with score > 0).
+        // Show full details for the top scored entries; the rest are listed as bare ids.
+        // Bounded by MAX_DETAILED so a broad query (e.g. "piston" matching many entries)
+        // can't balloon the prompt and slow down time-to-first-token.
         List<CircuitPrimitive> detailed = new ArrayList<>();
         List<String> compact = new ArrayList<>();
 
         for (int i = 0; i < scored.size(); i++) {
             ScoredPrimitive sp = scored.get(i);
-            if (i < 8 || sp.score > 0) {
+            if (detailed.size() < MAX_DETAILED && (i < 8 || sp.score > 0)) {
                 detailed.add(sp.prim);
             } else {
                 compact.add(sp.prim.id());

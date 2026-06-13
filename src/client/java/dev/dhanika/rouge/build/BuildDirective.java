@@ -35,22 +35,30 @@ public final class BuildDirective {
     private BuildDirective() {}
 
     public static StepPlan resolve(String rawJson) {
-        JsonObject root = JsonParser.parseString(rawJson.trim()).getAsJsonObject();
+        JsonObject root = JsonParser.parseString(trimToJsonObject(rawJson)).getAsJsonObject();
         String circuit = root.has("circuit") ? root.get("circuit").getAsString() : null;
 
         // 1. Retrieve a single library build verbatim.
-        if (root.has("use")) {
-            CircuitPrimitive p = CircuitLibrary.get(root.get("use").getAsString());
+        if (root.has("use") && !root.get("use").isJsonNull()) {
+            String id = root.get("use").getAsString();
+            CircuitPrimitive p = CircuitLibrary.get(id);
             if (p != null && p.isBuildable()) {
                 return circuit == null ? p.toStepPlan() : StepPlan.of(circuit, p.steps());
             }
-            // Unknown / blueprint id — fall through to other shapes if present.
+            // The id is a blueprint (no block data) or unknown. Only error out here if there's
+            // no other shape to fall back on — otherwise parts/steps below take over.
+            if (!root.has("parts") && !root.has("steps")) {
+                throw new IllegalArgumentException(p != null
+                        ? "'" + id + "' is a blueprint with no block data — model should emit explicit steps, not {\"use\"}"
+                        : "unknown build id '" + id + "'");
+            }
         }
 
         // 2. Compose from parts (+ optional additive wiring steps).
-        if (root.has("parts")) {
+        if (root.has("parts") && root.get("parts").isJsonArray()) {
             return compose(circuit, root.getAsJsonArray("parts"),
-                    root.has("steps") ? root.getAsJsonArray("steps") : null);
+                    root.has("steps") && root.get("steps").isJsonArray()
+                            ? root.getAsJsonArray("steps") : null);
         }
 
         // 3. Custom build with explicit cumulative blocks.
@@ -61,11 +69,15 @@ public final class BuildDirective {
         List<StepPlan.Step> out = new ArrayList<>();
         // Cumulative blocks contributed by parts already fully placed.
         List<BlockEntry> base = new ArrayList<>();
+        int buildableParts = 0;
 
         for (JsonElement el : parts) {
+            if (!el.isJsonObject()) continue;
             JsonObject part = el.getAsJsonObject();
+            if (!part.has("use") || part.get("use").isJsonNull()) continue;
             CircuitPrimitive prim = CircuitLibrary.get(part.get("use").getAsString());
             if (prim == null || !prim.isBuildable()) continue;
+            buildableParts++;
 
             int dx = intOr(part, "dx", 0), dy = intOr(part, "dy", 0), dz = intOr(part, "dz", 0);
             String label = part.has("label") ? part.get("label").getAsString() : prim.title();
@@ -85,14 +97,22 @@ public final class BuildDirective {
         if (extraSteps != null) {
             List<BlockEntry> acc = new ArrayList<>(base);
             for (JsonElement el : extraSteps) {
+                if (!el.isJsonObject()) continue;
                 JsonObject s = el.getAsJsonObject();
                 String title = s.has("title") ? s.get("title").getAsString() : "Wiring";
                 String expl = s.has("explanation") ? s.get("explanation").getAsString() : "";
-                if (s.has("blocks")) {
+                if (s.has("blocks") && s.get("blocks").isJsonArray()) {
                     acc = dedupe(concat(acc, readBlocks(s.getAsJsonArray("blocks"))));
                 }
                 out.add(new StepPlan.Step(title, expl, new ArrayList<>(acc)));
             }
+        }
+
+        // None of the referenced parts had block data (e.g. the model composed entirely
+        // from blueprint ids). Fail clearly so the player gets an actionable message.
+        if (buildableParts == 0 && out.isEmpty()) {
+            throw new IllegalArgumentException(
+                    "compose referenced no buildable parts — model should use buildable ids or emit explicit steps");
         }
 
         return StepPlan.of(circuit, out);
@@ -109,9 +129,8 @@ public final class BuildDirective {
     private static List<BlockEntry> readBlocks(JsonArray arr) {
         List<BlockEntry> out = new ArrayList<>(arr.size());
         for (JsonElement be : arr) {
-            JsonObject b = be.getAsJsonObject();
-            out.add(new BlockEntry(b.get("x").getAsInt(), b.get("y").getAsInt(),
-                    b.get("z").getAsInt(), b.get("block").getAsString()));
+            BlockEntry entry = BlockEntries.parse(be);
+            if (entry != null) out.add(entry);
         }
         return out;
     }
@@ -139,5 +158,21 @@ public final class BuildDirective {
 
     private static int intOr(JsonObject o, String k, int def) {
         return o.has(k) ? o.get(k).getAsInt() : def;
+    }
+
+    /**
+     * Trims a fenced body to its outermost JSON object. Models sometimes wrap the JSON with a
+     * stray comment line or trailing remark inside the fence ("Here's the plan: { ... }"),
+     * which would otherwise make {@link JsonParser} choke. If no braces are found, returns the
+     * input trimmed (so the original parse error still surfaces).
+     */
+    private static String trimToJsonObject(String raw) {
+        if (raw == null) return "";
+        int start = raw.indexOf('{');
+        int end = raw.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+            return raw.substring(start, end + 1);
+        }
+        return raw.trim();
     }
 }
