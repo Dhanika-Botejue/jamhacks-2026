@@ -2,11 +2,14 @@ package dev.dhanika.rouge;
 
 import dev.dhanika.rouge.ai.OpenRouterClient;
 import dev.dhanika.rouge.ai.OpenRouterConfig;
+import dev.dhanika.rouge.bridge.CanvasBridge;
 import dev.dhanika.rouge.chat.ChatInterceptor;
 import dev.dhanika.rouge.ai.ModelDiscovery;
 import dev.dhanika.rouge.command.RougeCommands;
+import dev.dhanika.rouge.compile.SketchCompiler;
 import dev.dhanika.rouge.render.GhostRenderer;
 import dev.dhanika.rouge.session.RougeSession;
+import dev.dhanika.rouge.teach.ProactiveTutor;
 import dev.dhanika.rouge.teach.StepSession;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
@@ -24,6 +27,7 @@ public class RougeClient implements ClientModInitializer {
         OpenRouterConfig config = new OpenRouterConfig();
         OpenRouterClient client = new OpenRouterClient(config);
         RougeSession.init(client, config);
+        CanvasBridge.init(new SketchCompiler(client));
 
         if (!config.hasToken()) {
             LOGGER.warn("[Rouge] No {} set — Rouge can open a session but can't reach the AI until you set it.",
@@ -32,12 +36,14 @@ public class RougeClient implements ClientModInitializer {
 
         RougeCommands.register();
         ChatInterceptor.register();
+        ProactiveTutor.register();
         WorldRenderEvents.AFTER_TRANSLUCENT.register(GhostRenderer::render);
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
             RougeSession.reset();
             StepSession.reset();
             ModelDiscovery.invalidate();
+            CanvasBridge.stop();
         });
 
         LOGGER.info("Rouge initialized (model: {}).", config.model());

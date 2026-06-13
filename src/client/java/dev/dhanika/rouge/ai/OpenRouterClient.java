@@ -56,6 +56,40 @@ public final class OpenRouterClient {
         return sendWithFallback(messages, 0);
     }
 
+    /**
+     * Single-shot multimodal request used by canvas mode: sends a system prompt plus a
+     * user turn that carries both the structured sketch text and (optionally) a PNG, to
+     * the configured vision model. No model fallback chain — vision models differ in
+     * input shape, so we surface the error rather than silently retrying a text model.
+     */
+    public CompletableFuture<String> completeVision(String systemPrompt, String userText, String pngBase64) {
+        JsonArray messages = new JsonArray();
+        if (systemPrompt != null && !systemPrompt.isEmpty()) {
+            messages.add(textMessage("system", systemPrompt));
+        }
+
+        JsonArray content = new JsonArray();
+        JsonObject textPart = new JsonObject();
+        textPart.addProperty("type", "text");
+        textPart.addProperty("text", userText);
+        content.add(textPart);
+        if (pngBase64 != null && !pngBase64.isEmpty()) {
+            JsonObject imageUrl = new JsonObject();
+            imageUrl.addProperty("url", "data:image/png;base64," + pngBase64);
+            JsonObject imagePart = new JsonObject();
+            imagePart.addProperty("type", "image_url");
+            imagePart.add("image_url", imageUrl);
+            content.add(imagePart);
+        }
+        JsonObject userMessage = new JsonObject();
+        userMessage.addProperty("role", "user");
+        userMessage.add("content", content);
+        messages.add(userMessage);
+
+        return sendRaw(config.visionModel(), messages, Duration.ofSeconds(60))
+                .thenApply(this::parseReply);
+    }
+
     private CompletableFuture<String> sendWithFallback(JsonArray messages, int attempt) {
         List<String> chain = buildChain();
         if (attempt >= chain.size()) {
