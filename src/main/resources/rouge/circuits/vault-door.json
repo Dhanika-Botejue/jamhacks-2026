@@ -1,0 +1,8 @@
+{
+  "id": "vault-door",
+  "title": "Vault Door (3x3 Spiral)",
+  "category": "door",
+  "description": "A 3x3 spiral/iris-style piston door where 8 stone or iron blocks retract in a rotating pattern from the center outward. Each piston fires in sequence via a clock or sequencer: top, right, bottom, left pairs retract in order giving the appearance of a spiral opening. Requires careful repeater timing (1-2 tick delays between each arm). The door opens in about 0.5 seconds. A T flip-flop toggles open/close. Hidden in a wall, this looks like a solid stone wall until activated.",
+  "aliases": ["iris door", "vault door", "spiral door", "3x3 door", "rotating door"],
+  "footprint": "6x5x5"
+}

@@ -19,7 +19,18 @@ public final class OpenRouterConfig {
      * Default text model (chat/tutor). Free models on OpenRouter come and go and
      * are rate-limited; verify the current id at https://openrouter.ai/models.
      */
-    private String model = "openai/gpt-oss-20b:free";
+    private String model = "mistralai/mistral-7b-instruct:free";
+
+    /**
+     * Fallback models tried in order when the primary hits a 429.
+     * Each has different rate-limit buckets, so the chain almost never exhausts.
+     * Update these (or use /rouge model in-game) if any become unavailable.
+     */
+    public static final String[] FALLBACKS = {
+            "qwen/qwen-2.5-7b-instruct:free",
+            "meta-llama/llama-3.1-8b-instruct:free",
+            "openchat/openchat-7b:free",
+    };
 
     /**
      * Vision model used to read the sketch when compiling a build. Must accept

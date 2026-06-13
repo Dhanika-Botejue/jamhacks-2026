@@ -1,0 +1,55 @@
+{
+  "id": "pulse-extender",
+  "title": "Pulse Extender",
+  "category": "timing",
+  "description": "Stretches a short pulse into a longer one. A monostable or button click that would normally last 1-2 ticks is extended to several seconds using a repeater chain feeding back through a diode. Useful for holding pistons or lamps on for a controlled duration.",
+  "aliases": ["pulse lengthener", "pulse stretcher", "signal extender"],
+  "inputs": ["trigger"],
+  "outputs": ["extended_pulse"],
+  "footprint": "5x2x2",
+  "steps": [
+    {
+      "title": "Foundation",
+      "explanation": "5-wide, 2-deep stone base. Signal enters from the left (x=0) and travels east through the repeater loop.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},{"x":4,"y":0,"z":1,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "Trigger button",
+      "explanation": "Stone button at (0,1,0). This gives the initial short pulse that enters the extender.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},{"x":4,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:stone_button[face=floor,facing=south,powered=false]"}
+      ]
+    },
+    {
+      "title": "Delay repeater chain",
+      "explanation": "Repeaters at x=1,2,3 on z=0, all facing east with delay=4. Together they add 12 ticks of delay to the pulse tail. The longer the chain or higher the delay setting, the longer the output pulse.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},{"x":4,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:stone_button[face=floor,facing=south,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:repeater[delay=4,facing=east,locked=false,powered=false]"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:repeater[delay=4,facing=east,locked=false,powered=false]"},
+        {"x":3,"y":1,"z":0,"block":"minecraft:repeater[delay=4,facing=east,locked=false,powered=false]"}
+      ]
+    },
+    {
+      "title": "Output lamp",
+      "explanation": "Dust at (4,1,0) carries the delayed output to a redstone lamp at (4,0,-1). The lamp stays lit for the full extended duration — roughly 12 ticks (0.6 s) after the button is released. Add more repeaters or increase delays to extend further.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},{"x":4,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:stone_button[face=floor,facing=south,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:repeater[delay=4,facing=east,locked=false,powered=false]"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:repeater[delay=4,facing=east,locked=false,powered=false]"},
+        {"x":3,"y":1,"z":0,"block":"minecraft:repeater[delay=4,facing=east,locked=false,powered=false]"},
+        {"x":4,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":4,"y":0,"z":-1,"block":"minecraft:redstone_lamp"}
+      ]
+    }
+  ]
+}

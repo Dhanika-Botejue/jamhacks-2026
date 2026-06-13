@@ -1,0 +1,62 @@
+{
+  "id": "nor-gate",
+  "title": "NOR Gate",
+  "category": "logic",
+  "description": "Output is ON only when ALL inputs are OFF. The basis of the RS NOR Latch. Built by merging two input paths into a single torch — the torch is extinguished by either active input.",
+  "aliases": ["nor", "not-or"],
+  "inputs": ["input_a", "input_b"],
+  "outputs": ["output"],
+  "footprint": "3x2x3",
+  "steps": [
+    {
+      "title": "Foundation",
+      "explanation": "3-wide, 3-deep stone base. Both inputs converge on the center column where the NOR torch sits.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "Input levers",
+      "explanation": "Lever A at (0,1,0), lever B at (0,1,2). Both levers can power the OR junction at x=1.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":0,"y":1,"z":2,"block":"minecraft:lever[face=floor,facing=north,powered=false]"}
+      ]
+    },
+    {
+      "title": "OR merge dust",
+      "explanation": "Dust from A at (0,1,0) fans to (1,1,0). Dust from B fans to (1,1,2). Both connect into the middle node (1,1,1) — any powered lever reaches the node.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":0,"y":1,"z":2,"block":"minecraft:lever[face=floor,facing=north,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":2,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:redstone_wire"}
+      ]
+    },
+    {
+      "title": "NOR torch + output lamp",
+      "explanation": "Wall torch on the east face of block at (1,0,1). When either input is active the merged dust powers the anchor block, extinguishing the torch. NOR output is lamp at (2,0,-1) — lit only when A=0 AND B=0.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":0,"y":1,"z":2,"block":"minecraft:lever[face=floor,facing=north,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":2,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":0,"z":1,"block":"minecraft:redstone_wall_torch[facing=east,lit=true]"},
+        {"x":2,"y":0,"z":-1,"block":"minecraft:redstone_lamp"}
+      ]
+    }
+  ]
+}
