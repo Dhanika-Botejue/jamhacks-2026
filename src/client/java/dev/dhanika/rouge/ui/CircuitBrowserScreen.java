@@ -21,41 +21,46 @@ import java.util.Set;
 
 /**
  * The build browser: a visual selection window over Rouge's library of buildable circuits.
- * Each match is shown as a clickable tile with an isometric preview rendered from its block
- * data, its name and stats, and a description. Click tiles to pick the parts you want and hit
- * "Stitch selected", or hit "Let Rouge choose" to defer to the AI.
- *
- * <p>Selections persist as the search filter changes, so the player can pull parts from several
- * different queries into a single stitch.
+ * Each match is shown as a clickable tile with an isometric preview, name, stats, and
+ * description. Click (or Space) to toggle selection — multiple circuits can be selected
+ * and stitched together. A persistent selection tray at the bottom shows what's queued.
  */
 public final class CircuitBrowserScreen extends Screen {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("rouge");
 
     private static final int MARGIN = 16;
-    private static final int ROW_H = 46;
-    private static final int THUMB = 38;
+    private static final int ROW_H  = 46;
+    private static final int THUMB  = 38;
+    private static final int TRAY_H = 52; // selection tray height at bottom
 
     // Colors (ARGB).
     private static final int PANEL_BG    = 0xC0101014;
+    private static final int TRAY_BG     = 0xD0181820;
+    private static final int TRAY_BORDER = 0xFF6040C0;
     private static final int ROW_BG      = 0x40000000;
     private static final int ROW_HOVER   = 0x33FFFFFF;
-    private static final int SEL_ROW     = 0x4055FF66;
+    private static final int SEL_ROW     = 0x5055FF66;
     private static final int SEL_BORDER  = 0xFF55FF66;
     private static final int THUMB_BG    = 0xFF26262E;
     private static final int TITLE_TEXT  = 0xFFFFFFFF;
     private static final int META_TEXT   = 0xFF9AE0A0;
     private static final int DESC_TEXT   = 0xFF9C9CA8;
     private static final int SUBTITLE    = 0xFFD0B0FF;
+    private static final int HINT_TEXT   = 0xFF7060A0;
     private static final int SCROLL_BAR  = 0xFFB070FF;
     private static final int CHECK_GREEN = 0xFF55FF66;
     private static final int CHECK_EMPTY = 0xFF55555E;
+    private static final int CHIP_BG     = 0xFF2A2040;
+    private static final int CHIP_SEL    = 0xFF3A4A2A;
+    private static final int CHIP_BORDER = 0xFF55FF66;
 
     private final Set<String> selected = new LinkedHashSet<>();
     private String query;
 
     private EditBox searchBox;
     private Button stitchButton;
+    private Button clearButton;
     private List<CircuitPrimitive> filtered = List.of();
 
     private int listLeft;
@@ -63,10 +68,12 @@ public final class CircuitBrowserScreen extends Screen {
     private int listTop;
     private int listBottom;
     private int scrollOffset;
-    private boolean firstRenderLogged = false;
+
+    // Keyboard focus index within the filtered list (-1 = none).
+    private int focusIdx = -1;
 
     public CircuitBrowserScreen(String query) {
-        super(Component.literal("Rouge — Pick Parts to Build"));
+        super(Component.literal("Rouge — Pick Parts to Stitch"));
         this.query = query == null ? "" : query;
     }
 
@@ -76,44 +83,54 @@ public final class CircuitBrowserScreen extends Screen {
         mc.execute(() -> mc.setScreen(new CircuitBrowserScreen(query)));
     }
 
+    /** Registers screen-open key feedback — called from RougeClient. */
+    public static void register() {
+        // No global key binding needed; the screen is opened via chat routing.
+    }
+
     @Override
     protected void init() {
-        int top = 40;
-        searchBox = new EditBox(font, MARGIN, top, width - 2 * MARGIN, 18, Component.literal("Search"));
+        int searchY = 40;
+        searchBox = new EditBox(font, MARGIN, searchY, width - 2 * MARGIN, 18, Component.literal("Search"));
         searchBox.setMaxLength(64);
         searchBox.setHint(Component.literal("Search builds — e.g. \"piston door\", \"clock\"…"));
         searchBox.setValue(query);
         searchBox.setResponder(this::refilter);
         addRenderableWidget(searchBox);
 
-        listLeft = MARGIN;
-        listRight = width - MARGIN;
-        listTop = top + 24;
-        listBottom = height - 38;
+        listLeft   = MARGIN;
+        listRight  = width - MARGIN;
+        listTop    = searchY + 24;
+        listBottom = height - TRAY_H - 8;
 
         refilter(query);
 
-        int gap = 8;
-        int btnW = (width - 2 * MARGIN - 2 * gap) / 3;
-        int by = height - 28;
-        int x0 = MARGIN;
+        // Buttons inside the tray.
+        int btnY  = height - TRAY_H + 30;
+        int btnW  = 140;
+        int gap   = 8;
+        int totalW = btnW * 3 + gap * 2;
+        int x0    = (width - totalW) / 2;
+
         stitchButton = Button.builder(stitchLabel(), b -> onStitch())
-                .bounds(x0, by, btnW, 20).build();
+                .bounds(x0, btnY, btnW, 20).build();
         addRenderableWidget(stitchButton);
+
         addRenderableWidget(Button.builder(Component.literal("Let Rouge choose"), b -> onLetRougeChoose())
-                .bounds(x0 + btnW + gap, by, btnW, 20).build());
-        addRenderableWidget(Button.builder(Component.literal("Cancel"), b -> onClose())
-                .bounds(x0 + 2 * (btnW + gap), by, btnW, 20).build());
-        updateStitchButton();
+                .bounds(x0 + btnW + gap, btnY, btnW, 20).build());
+
+        clearButton = Button.builder(Component.literal("Clear selection"), b -> onClear())
+                .bounds(x0 + 2 * (btnW + gap), btnY, btnW, 20).build();
+        addRenderableWidget(clearButton);
+
+        updateButtons();
         setInitialFocus(searchBox);
-        LOGGER.info("[Rouge] Build browser opened: buildMode={}, query='{}', entries={}, size={}x{}, list=[{}..{} x {}..{}]",
-                RougeSession.getBuildMode(), query, filtered.size(), width, height,
-                listLeft, listRight, listTop, listBottom);
     }
 
     private void refilter(String q) {
         this.query = q;
         filtered = CircuitLibrary.rankedBuildable(q);
+        focusIdx = filtered.isEmpty() ? -1 : 0;
         clampScroll();
     }
 
@@ -125,62 +142,54 @@ public final class CircuitBrowserScreen extends Screen {
         }
         if (parts.isEmpty()) return;
         String goal = searchBox.getValue();
-        LOGGER.info("[Rouge] Stitch requested: {} part(s) {} (buildMode={}, goal='{}')",
-                parts.size(), parts.stream().map(CircuitPrimitive::id).toList(),
-                RougeSession.getBuildMode(), goal);
+        LOGGER.info("[Rouge] Stitch: {} part(s) {}", parts.size(), parts.stream().map(CircuitPrimitive::id).toList());
         onClose();
         RougeSession.stitchSelected(goal, parts);
     }
 
-    /** Hand the current goal back to the AI to pick and build itself (the classic flow). */
     private void onLetRougeChoose() {
         String goal = searchBox.getValue();
-        LOGGER.info("[Rouge] Deferring to AI to pick & build (buildMode={}, goal='{}')",
-                RougeSession.getBuildMode(), goal);
         onClose();
         RougeSession.buildWithAi(goal);
     }
 
-    private void toggle(String id) {
-        boolean nowSelected = !selected.remove(id);
-        if (nowSelected) selected.add(id);
-        updateStitchButton();
-        LOGGER.info("[Rouge] Browser toggle: {} -> {} (selected now: {})", id, nowSelected, selected);
+    private void onClear() {
+        selected.clear();
+        updateButtons();
     }
 
-    private void updateStitchButton() {
+    private void toggleItem(String id) {
+        if (!selected.remove(id)) selected.add(id);
+        updateButtons();
+    }
+
+    private void updateButtons() {
         stitchButton.setMessage(stitchLabel());
         stitchButton.active = !selected.isEmpty();
+        clearButton.active  = !selected.isEmpty();
     }
 
     private Component stitchLabel() {
-        return Component.literal("Stitch selected (" + selected.size() + ")");
+        if (selected.isEmpty()) return Component.literal("Stitch selected");
+        return Component.literal("Stitch " + selected.size() + " circuit" + (selected.size() == 1 ? "" : "s") + " →");
     }
 
     // --- rendering ---
 
     @Override
-    public void removed() {
-        LOGGER.info("[Rouge] Build browser REMOVED/closed (was current screen = {})",
-                Minecraft.getInstance().screen == this);
-        super.removed();
-    }
-
-    @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
-        if (!firstRenderLogged) {
-            firstRenderLogged = true;
-            LOGGER.info("[Rouge] Build browser FIRST RENDER (current screen = this: {})",
-                    Minecraft.getInstance().screen == this);
-        }
         renderBackground(g);
+
+        // Header
         g.drawCenteredString(font, title, width / 2, 12, TITLE_TEXT);
         g.drawCenteredString(font,
-                Component.literal("Click tiles to pick parts to merge — or \"Let Rouge choose\" for you."),
+                Component.literal("Click circuits to select — pick as many as you want, then stitch them together."),
                 width / 2, 26, SUBTITLE);
 
         renderList(g, mouseX, mouseY);
-        super.render(g, mouseX, mouseY, partialTick); // search box + buttons on top
+        renderTray(g);
+
+        super.render(g, mouseX, mouseY, partialTick); // widgets on top
     }
 
     private void renderList(GuiGraphics g, int mouseX, int mouseY) {
@@ -194,44 +203,56 @@ public final class CircuitBrowserScreen extends Screen {
 
         g.enableScissor(listLeft, listTop, listRight, listBottom);
         int y = listTop - scrollOffset;
-        for (CircuitPrimitive p : filtered) {
+        for (int i = 0; i < filtered.size(); i++) {
+            CircuitPrimitive p = filtered.get(i);
             if (y + ROW_H >= listTop && y <= listBottom) {
-                renderRow(g, p, y, mouseX, mouseY);
+                renderRow(g, p, y, mouseX, mouseY, i == focusIdx);
             }
             y += ROW_H;
         }
         g.disableScissor();
 
         renderScrollbar(g);
+
+        // Keyboard hint bottom-right of list area
+        g.drawString(font, "Space / click to select  ·  Enter to stitch",
+                listRight - font.width("Space / click to select  ·  Enter to stitch") - 4,
+                listBottom - font.lineHeight - 2, HINT_TEXT, false);
     }
 
-    private void renderRow(GuiGraphics g, CircuitPrimitive p, int y, int mouseX, int mouseY) {
-        boolean sel = selected.contains(p.id());
+    private void renderRow(GuiGraphics g, CircuitPrimitive p, int y, int mouseX, int mouseY, boolean focused) {
+        boolean sel   = selected.contains(p.id());
         boolean hover = mouseX >= listLeft && mouseX <= listRight
                 && mouseY >= Math.max(y, listTop) && mouseY < Math.min(y + ROW_H, listBottom);
 
         int top = y + 2, bottom = y + ROW_H - 2;
         g.fill(listLeft + 2, top, listRight - 2, bottom, sel ? SEL_ROW : ROW_BG);
         if (hover && !sel) g.fill(listLeft + 2, top, listRight - 2, bottom, ROW_HOVER);
+
+        // Selection border
         if (sel) {
-            // bright border so the picked state is unmistakable
-            g.fill(listLeft + 2, top, listRight - 2, top + 1, SEL_BORDER);
+            g.fill(listLeft + 2, top,    listRight - 2, top + 1,    SEL_BORDER);
             g.fill(listLeft + 2, bottom - 1, listRight - 2, bottom, SEL_BORDER);
-            g.fill(listLeft + 2, top, listLeft + 3, bottom, SEL_BORDER);
-            g.fill(listRight - 3, top, listRight - 2, bottom, SEL_BORDER);
+            g.fill(listLeft + 2, top,    listLeft + 3,  bottom,     SEL_BORDER);
+            g.fill(listRight - 3, top,   listRight - 2, bottom,     SEL_BORDER);
         }
 
-        // Isometric visual of the build.
+        // Keyboard focus ring
+        if (focused && !sel) {
+            int fc = 0x66AA88FF;
+            g.fill(listLeft + 2, top, listRight - 2, top + 1, fc);
+            g.fill(listLeft + 2, bottom - 1, listRight - 2, bottom, fc);
+        }
+
+        // Isometric thumbnail
         int thumbX = listLeft + 6, thumbY = y + (ROW_H - THUMB) / 2;
         g.fill(thumbX, thumbY, thumbX + THUMB, thumbY + THUMB, THUMB_BG);
         try {
             renderIso(g, p.blocks(), thumbX + 2, thumbY + 2, THUMB - 4, THUMB - 4);
-        } catch (Exception ignored) {
-            // a bad block id never breaks the row
-        }
+        } catch (Exception ignored) {}
 
-        // Text block.
-        int textX = thumbX + THUMB + 8;
+        // Text block
+        int textX    = thumbX + THUMB + 8;
         int textRight = listRight - 22;
         g.drawString(font, p.title(), textX, y + 6, TITLE_TEXT, false);
         String meta = p.footprint() + "   " + p.steps().size() + " steps   " + p.blocks().size() + " blocks";
@@ -239,14 +260,47 @@ public final class CircuitBrowserScreen extends Screen {
         String desc = font.plainSubstrByWidth(p.description(), textRight - textX);
         g.drawString(font, desc, textX, y + 30, DESC_TEXT, false);
 
-        // Checkbox on the right edge.
+        // Checkbox
         int cb = listRight - 18, cy = y + (ROW_H - 12) / 2;
         g.fill(cb, cy, cb + 12, cy + 12, sel ? CHECK_GREEN : CHECK_EMPTY);
         g.fill(cb + 1, cy + 1, cb + 11, cy + 11, sel ? CHECK_GREEN : THUMB_BG);
         if (sel) {
-            // little check tick
             g.fill(cb + 3, cy + 6, cb + 5, cy + 9, 0xFF0A2A0A);
             g.fill(cb + 5, cy + 4, cb + 9, cy + 9, 0xFF0A2A0A);
+        }
+    }
+
+    /** Selection tray — shows chips for each selected circuit name and the action buttons. */
+    private void renderTray(GuiGraphics g) {
+        int ty = height - TRAY_H;
+        g.fill(listLeft, ty, listRight, height - 2, TRAY_BG);
+        // Top border line
+        g.fill(listLeft, ty, listRight, ty + 1, TRAY_BORDER);
+
+        if (selected.isEmpty()) {
+            g.drawCenteredString(font,
+                    Component.literal("No circuits selected — click rows above to queue them for stitching."),
+                    width / 2, ty + 8, HINT_TEXT);
+        } else {
+            // "X selected:" label
+            String countLabel = selected.size() + " selected:";
+            g.drawString(font, countLabel, listLeft + 4, ty + 8, CHECK_GREEN, false);
+            int chipX = listLeft + 4 + font.width(countLabel) + 6;
+            int chipY = ty + 4;
+            for (String id : selected) {
+                CircuitPrimitive p = CircuitLibrary.get(id);
+                String name = p != null ? p.title() : id;
+                int chipW = font.width(name) + 10;
+                if (chipX + chipW > listRight - 4) break; // overflow guard
+                g.fill(chipX, chipY, chipX + chipW, chipY + font.lineHeight + 4,
+                        selected.contains(id) ? CHIP_SEL : CHIP_BG);
+                g.fill(chipX, chipY, chipX + chipW, chipY + 1, CHIP_BORDER);
+                g.fill(chipX, chipY + font.lineHeight + 3, chipX + chipW, chipY + font.lineHeight + 4, CHIP_BORDER);
+                g.fill(chipX, chipY, chipX + 1, chipY + font.lineHeight + 4, CHIP_BORDER);
+                g.fill(chipX + chipW - 1, chipY, chipX + chipW, chipY + font.lineHeight + 4, CHIP_BORDER);
+                g.drawString(font, name, chipX + 5, chipY + 2, TITLE_TEXT, false);
+                chipX += chipW + 4;
+            }
         }
     }
 
@@ -254,7 +308,6 @@ public final class CircuitBrowserScreen extends Screen {
     private void renderIso(GuiGraphics g, List<BlockEntry> blocks, int bx, int by, int bw, int bh) {
         if (blocks == null || blocks.isEmpty()) return;
 
-        // Project each voxel: screen px = x - z, py = (x + z)/2 - y (world up = screen up).
         double minPx = Double.MAX_VALUE, maxPx = -Double.MAX_VALUE;
         double minPy = Double.MAX_VALUE, maxPy = -Double.MAX_VALUE;
         for (BlockEntry b : blocks) {
@@ -273,7 +326,6 @@ public final class CircuitBrowserScreen extends Screen {
         double offX = bx + (bw - contentW) / 2.0 - minPx * scale;
         double offY = by + (bh - contentH) / 2.0 - minPy * scale;
 
-        // Painter's order: far/low first so near/high overdraw.
         List<BlockEntry> sorted = new ArrayList<>(blocks);
         sorted.sort((a, b) -> Integer.compare(a.x() + a.y() + a.z(), b.x() + b.y() + b.z()));
 
@@ -284,27 +336,26 @@ public final class CircuitBrowserScreen extends Screen {
             int sy = (int) Math.round(offY + py * scale);
             int color = colorFor(b.block());
             g.fill(sx, sy, sx + cell, sy + cell, color);
-            g.fill(sx, sy, sx + cell, sy + 1, lighten(color, 50));        // top highlight
-            g.fill(sx, sy + cell - 1, sx + cell, sy + cell, lighten(color, -40)); // bottom shade
+            g.fill(sx, sy, sx + cell, sy + 1,           lighten(color, 50));
+            g.fill(sx, sy + cell - 1, sx + cell, sy + cell, lighten(color, -40));
         }
     }
 
-    /** Maps a block id to a representative colour so the iso preview reads at a glance. */
     private static int colorFor(String block) {
         String b = block == null ? "" : block.toLowerCase();
         if (b.contains("redstone_wire") || b.equals("minecraft:redstone")) return 0xFFE03434;
         if (b.contains("redstone_torch") || b.contains("redstone_wall_torch") || b.contains("torch")) return 0xFFFF5A3C;
         if (b.contains("repeater") || b.contains("comparator")) return 0xFFC07878;
-        if (b.contains("redstone_lamp")) return 0xFFE7C766;
-        if (b.contains("sticky_piston")) return 0xFF9FB04A;
-        if (b.contains("piston")) return 0xFFB89A5C;
-        if (b.contains("slime")) return 0xFF7BC043;
-        if (b.contains("honey")) return 0xFFE0A832;
-        if (b.contains("observer")) return 0xFF5E6068;
-        if (b.contains("target")) return 0xFFE6CCA6;
+        if (b.contains("redstone_lamp"))  return 0xFFE7C766;
+        if (b.contains("sticky_piston"))  return 0xFF9FB04A;
+        if (b.contains("piston"))         return 0xFFB89A5C;
+        if (b.contains("slime"))          return 0xFF7BC043;
+        if (b.contains("honey"))          return 0xFFE0A832;
+        if (b.contains("observer"))       return 0xFF5E6068;
+        if (b.contains("target"))         return 0xFFE6CCA6;
         if (b.contains("lever") || b.contains("button")) return 0xFF8A8A8A;
         if (b.contains("dropper") || b.contains("dispenser") || b.contains("hopper")) return 0xFF50505A;
-        if (b.contains("glass")) return 0xFFAFD3E2;
+        if (b.contains("glass"))          return 0xFFAFD3E2;
         if (b.contains("note_block") || b.contains("wool") || b.contains("planks") || b.contains("log")) return 0xFFA9794C;
         if (b.contains("stone") || b.contains("cobble") || b.contains("brick") || b.contains("deepslate")
                 || b.contains("concrete") || b.contains("terracotta") || b.contains("smooth")) return 0xFF8C8C92;
@@ -312,22 +363,22 @@ public final class CircuitBrowserScreen extends Screen {
     }
 
     private static int lighten(int argb, int delta) {
-        int a = (argb >>> 24) & 0xFF;
-        int r = Mth.clamp(((argb >> 16) & 0xFF) + delta, 0, 255);
-        int gg = Mth.clamp(((argb >> 8) & 0xFF) + delta, 0, 255);
-        int bb = Mth.clamp((argb & 0xFF) + delta, 0, 255);
+        int a  = (argb >>> 24) & 0xFF;
+        int r  = Mth.clamp(((argb >> 16) & 0xFF) + delta, 0, 255);
+        int gg = Mth.clamp(((argb >>  8) & 0xFF) + delta, 0, 255);
+        int bb = Mth.clamp((argb         & 0xFF) + delta, 0, 255);
         return (a << 24) | (r << 16) | (gg << 8) | bb;
     }
 
     private void renderScrollbar(GuiGraphics g) {
-        int viewH = listBottom - listTop;
+        int viewH    = listBottom - listTop;
         int contentH = filtered.size() * ROW_H;
         if (contentH <= viewH) return;
-        int barX = listRight - 3;
-        int barH = Math.max(20, (int) ((long) viewH * viewH / contentH));
-        int travel = viewH - barH;
+        int barX  = listRight - 3;
+        int barH  = Math.max(20, (int)((long) viewH * viewH / contentH));
+        int travel    = viewH - barH;
         int maxScroll = contentH - viewH;
-        int barY = listTop + (maxScroll == 0 ? 0 : (int) ((long) scrollOffset * travel / maxScroll));
+        int barY  = listTop + (maxScroll == 0 ? 0 : (int)((long) scrollOffset * travel / maxScroll));
         g.fill(barX, barY, barX + 2, barY + barH, SCROLL_BAR);
     }
 
@@ -335,16 +386,14 @@ public final class CircuitBrowserScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
-        boolean superConsumed = super.mouseClicked(mx, my, button);
-        LOGGER.info("[Rouge] Browser click: ({},{}) btn={} superConsumed={} list=[{}..{} x {}..{}] filtered={}",
-                (int) mx, (int) my, button, superConsumed, listLeft, listRight, listTop, listBottom, filtered.size());
-        if (superConsumed) return true;
+        if (super.mouseClicked(mx, my, button)) return true;
         if (button == 0 && mx >= listLeft && mx <= listRight && my >= listTop && my <= listBottom
                 && !filtered.isEmpty()) {
-            int rel = (int) (my - listTop) + scrollOffset;
+            int rel = (int)(my - listTop) + scrollOffset;
             int idx = rel / ROW_H;
             if (idx >= 0 && idx < filtered.size()) {
-                toggle(filtered.get(idx).id());
+                focusIdx = idx;
+                toggleItem(filtered.get(idx).id());
                 return true;
             }
         }
@@ -352,9 +401,48 @@ public final class CircuitBrowserScreen extends Screen {
     }
 
     @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        // Don't steal typing from the search box.
+        if (searchBox.isFocused()) return super.keyPressed(keyCode, scanCode, modifiers);
+
+        switch (keyCode) {
+            case 264 -> { // Down arrow
+                focusIdx = Math.min(focusIdx + 1, filtered.size() - 1);
+                scrollToFocused();
+                return true;
+            }
+            case 265 -> { // Up arrow
+                focusIdx = Math.max(focusIdx - 1, 0);
+                scrollToFocused();
+                return true;
+            }
+            case 32 -> { // Space — toggle focused
+                if (focusIdx >= 0 && focusIdx < filtered.size()) {
+                    toggleItem(filtered.get(focusIdx).id());
+                }
+                return true;
+            }
+            case 257, 335 -> { // Enter / numpad Enter — stitch
+                if (!selected.isEmpty()) onStitch();
+                return true;
+            }
+        }
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
+    private void scrollToFocused() {
+        if (focusIdx < 0 || filtered.isEmpty()) return;
+        int itemTop = focusIdx * ROW_H;
+        int viewH   = listBottom - listTop;
+        if (itemTop < scrollOffset) scrollOffset = itemTop;
+        else if (itemTop + ROW_H > scrollOffset + viewH) scrollOffset = itemTop + ROW_H - viewH;
+        clampScroll();
+    }
+
+    @Override
     public boolean mouseScrolled(double mx, double my, double delta) {
         if (mx >= listLeft && mx <= listRight && my >= listTop && my <= listBottom) {
-            scrollOffset -= (int) (delta * (ROW_H / 2.0));
+            scrollOffset -= (int)(delta * (ROW_H / 2.0));
             clampScroll();
             return true;
         }
@@ -363,6 +451,6 @@ public final class CircuitBrowserScreen extends Screen {
 
     private void clampScroll() {
         int maxScroll = Math.max(0, filtered.size() * ROW_H - (listBottom - listTop));
-        scrollOffset = Mth.clamp(scrollOffset, 0, maxScroll);
+        scrollOffset  = Mth.clamp(scrollOffset, 0, maxScroll);
     }
 }
