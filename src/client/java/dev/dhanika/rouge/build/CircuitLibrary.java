@@ -151,6 +151,11 @@ public final class CircuitLibrary {
         return out;
     }
 
+    /** Buildable-only entries ranked by relevance to the query. Used by the circuit browser. */
+    public static List<CircuitPrimitive> rankedBuildable(String query) {
+        return ranked(query).stream().filter(CircuitPrimitive::isBuildable).toList();
+    }
+
     private static String[] queryWords(String query) {
         if (query == null || query.isBlank()) return new String[0];
         return query.toLowerCase().replaceAll("[^a-z0-9\\s-]", "").split("\\s+");
