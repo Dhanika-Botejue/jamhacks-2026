@@ -32,14 +32,14 @@ public final class CircuitLibrary {
             "piston-tape", "pulse-extender", "redstone-bridge", "redstone-lamp",
             "repeater-delay", "rising-edge-detector", "rs-latch", "sticky-piston-retract",
             "t-flip-flop", "trapdoor-bridge", "vertical-signal-transmitter", "water-stream",
-            "xnor-gate", "xor-gate",
+            "xnor-gate", "xor-gate", "piston-door-2x2",
             // Blueprint builds — description-only ground truth for larger machines.
             "auto-smelter", "auto-sugarcane-farm", "bamboo-farm", "cobblestone-generator",
             "comparator-detect", "double-piston-extender", "drawbridge", "enderman-farm",
             "flying-machine", "gold-farm", "hidden-staircase", "hopper-clock",
             "iron-farm", "item-elevator", "item-sorter", "kelp-farm",
             "mail-system", "melon-pumpkin-farm", "mob-farm", "monostable",
-            "piston-door-2x2", "piston-door-3x3", "piston-door-4x4", "sand-duper",
+            "piston-door-3x3", "piston-door-4x4", "sand-duper",
             "slime-block-elevator", "storage-system", "tnt-cannon", "tnt-duper",
             "torch-clock", "tree-farm", "vault-door", "villager-breeder", "wheat-farm"
     };

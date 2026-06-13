@@ -6,11 +6,12 @@ import com.google.gson.JsonParser;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * A complete 3D build: its bounding size plus every block to place. This is the
- * single contract that both producers (the sketch canvas + the AI compiler) emit
- * and both consumers (the Litematica writer + the world placer) read.
+ * single contract that producers (AI build directives, bundled samples) emit and
+ * consumers (the ghost renderer, the world placer, the local diff) read.
  * <p>
  * Each {@link BlockEntry} carries a {@code role} (input/output/component/wire/
  * delay/support) so {@link Difficulty} can decide what to hide without re-guessing.
@@ -93,12 +94,26 @@ public record BuildSpec(int sizeX, int sizeY, int sizeZ, List<BlockEntry> blocks
         return b < 0 ? block : block.substring(0, b);
     }
 
-    /** Ensures the block id has a namespace (defaults to {@code minecraft:}). */
-    private static String normalizeBlockId(String block) {
-        if (block.contains(":")) {
-            return block;
+    /**
+     * Canonicalizes a block id so it matches Minecraft's registry keys. Models often emit
+     * loose ids — spaces instead of underscores ({@code "sticky piston"}), stray casing, or no
+     * namespace — which would otherwise fail to parse (no ghost) and never match the placed
+     * block in {@link BuildDiff} (a correct placement reported as "wrong"). We lowercase the
+     * base id, turn spaces into underscores, default the namespace to {@code minecraft:}, and
+     * strip incidental spaces inside any {@code [state]} suffix.
+     */
+    public static String normalizeBlockId(String block) {
+        if (block == null) {
+            return "";
         }
-        return "minecraft:" + block;
+        String s = block.trim();
+        int br = s.indexOf('[');
+        String base = (br < 0 ? s : s.substring(0, br)).trim().toLowerCase(Locale.ROOT).replace(' ', '_');
+        String props = br < 0 ? "" : s.substring(br).replace(" ", "");
+        if (!base.contains(":")) {
+            base = "minecraft:" + base;
+        }
+        return base + props;
     }
 
     /** Returns the substring of the first balanced top-level {@code {...}} object. */

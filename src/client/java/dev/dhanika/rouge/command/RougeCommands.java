@@ -1,7 +1,6 @@
 package dev.dhanika.rouge.command;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
-import dev.dhanika.rouge.bridge.CanvasBridge;
 import dev.dhanika.rouge.build.Difficulty;
 import dev.dhanika.rouge.build.WorldPlacer;
 import dev.dhanika.rouge.chat.ChatDisplay;
@@ -101,33 +100,7 @@ public final class RougeCommands {
                                     ChatDisplay.system("Current build mode: " + current + ". Use /rouge mode hologram|place.");
                                     return 1;
                                 }))
-                        // --- Canvas mode: sketch → AI → Litematica overlay (toggled on/off) ---
-                        .then(ClientCommandManager.literal("canvas")
-                                .then(ClientCommandManager.literal("on")
-                                        .executes(ctx -> {
-                                            if (CanvasBridge.isRunning()) {
-                                                ChatDisplay.system("Canvas mode is already on (listening on port "
-                                                        + CanvasBridge.PORT + ").");
-                                            } else {
-                                                CanvasBridge.start();
-                                                ChatDisplay.system("Canvas mode on. Open canvas/index.html, sketch a "
-                                                        + "circuit, and hit \"Build in Minecraft\". Then: /rouge load, "
-                                                        + "/rouge level, /rouge solution, /rouge check.");
-                                            }
-                                            return 1;
-                                        }))
-                                .then(ClientCommandManager.literal("off")
-                                        .executes(ctx -> {
-                                            CanvasBridge.stop();
-                                            ChatDisplay.system("Canvas mode off.");
-                                            return 1;
-                                        }))
-                                .executes(ctx -> {
-                                    ChatDisplay.system("Canvas mode is " + (CanvasBridge.isRunning() ? "on" : "off")
-                                            + ". Use /rouge canvas on|off.");
-                                    return 1;
-                                }))
-                        // --- Lesson actions (canvas mode) ---
+                        // --- Lesson actions ---
                         .then(ClientCommandManager.literal("load")
                                 .executes(ctx -> {
                                     LessonManager.loadSample();
@@ -151,7 +124,7 @@ public final class RougeCommands {
                                             return 1;
                                         }))
                                 .executes(ctx -> {
-                                    ChatDisplay.system("Usage: /rouge level basic|easy|medium|hard");
+                                    ChatDisplay.system("Usage: /rouge level easy|medium|hard");
                                     return 1;
                                 }))));
     }

@@ -10,6 +10,7 @@ import dev.dhanika.rouge.build.CircuitPrimitive;
 import dev.dhanika.rouge.build.PlanningOutline;
 import dev.dhanika.rouge.build.StepPlan;
 import dev.dhanika.rouge.chat.ChatDisplay;
+import dev.dhanika.rouge.render.ThinkingHud;
 import dev.dhanika.rouge.prompt.SystemPrompts;
 import dev.dhanika.rouge.render.GhostRenderer;
 import dev.dhanika.rouge.teach.StepSession;
@@ -58,6 +59,10 @@ public final class RougeSession {
     // Matches rougeplanning fences and captures the JSON body.
     private static final Pattern PLANNING_FENCE =
             Pattern.compile("```rougeplanning\\s*\\n([\\s\\S]*?)\\n?```", Pattern.DOTALL);
+
+        // Matches <think>...</think> reasoning blocks emitted by some models (e.g. DeepSeek R1).
+    private static final Pattern THINK_BLOCK =
+            Pattern.compile("<think>([\\s\\S]*?)</think>", Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
     // How many recent conversation messages (user+assistant) to resend each turn.
     // The system prompt and library context are always re-injected separately, so this
@@ -219,7 +224,9 @@ public final class RougeSession {
         history.clear();
         history.add(ChatMessage.system(SystemPrompts.redstoneTutor()));
         client.prewarm(); // discover free models + warm the TLS connection before the first ask
-        ChatDisplay.system("Session open. Ask me to teach you any redstone build — I'll show it step by step in-world. Type /rouge again to close.");
+        ChatDisplay.system("Session open. Ask me to teach you any redstone build — I'll show it step by step as a "
+                + "translucent hologram you build against, and move on as you go. Set difficulty with "
+                + "/rouge level easy|medium|hard. Type /rouge again to close.");
     }
 
     private static void close() {
@@ -251,9 +258,21 @@ public final class RougeSession {
         history.clear();
     }
 
+    /**
+     * Called by {@link StepSession} when a build ends on its own (auto-advance finished the last
+     * step) or is stopped, so the session leaves BUILDING mode and treats the next message as
+     * normal chat rather than a step command.
+     */
+    public static void endBuildMode() {
+        if (open && mode == Mode.BUILDING) {
+            mode = Mode.CHAT;
+        }
+    }
+
     public static void handleUserMessage(String text) {
         if (!open || text == null || text.isBlank()) return;
 
+        ChatDisplay.userSaid(text); // echo player's own message so it's visible in chat
         repairAttempts = 0; // a fresh user turn — allow the model a repair retry again
 
         switch (mode) {
@@ -435,6 +454,7 @@ public final class RougeSession {
      */
     private static void dispatchToAi() {
         awaitingReply = true;
+        ThinkingHud.start();
         ChatDisplay.system("Rouge is thinking…");
 
         // Per-request system context: the persona prompt, the build library, and the current
@@ -463,12 +483,17 @@ public final class RougeSession {
         int from = Math.max(1, history.size() - MAX_HISTORY_MESSAGES);
         request.addAll(history.subList(from, history.size()));
 
-        client.complete(request).whenComplete((reply, err) ->
-                Minecraft.getInstance().execute(() -> onReply(reply, err)));
+        client.complete(request, status ->
+                        Minecraft.getInstance().execute(() -> {
+                            if (open) ChatDisplay.system(status);
+                        }))
+                .whenComplete((reply, err) ->
+                        Minecraft.getInstance().execute(() -> onReply(reply, err)));
     }
 
     private static void onReply(String reply, Throwable err) {
         awaitingReply = false;
+        ThinkingHud.stop();
         if (!open) return;
 
         if (err != null) {
@@ -478,7 +503,15 @@ public final class RougeSession {
             return;
         }
 
-        // Check for a planning outline fence first (takes priority over build fences).
+        // Extract and display any <think>...</think> reasoning blocks, then strip them.
+        Matcher tm = THINK_BLOCK.matcher(reply);
+        while (tm.find()) {
+            String thought = tm.group(1).trim();
+            if (!thought.isEmpty()) ChatDisplay.thought(thought);
+        }
+        reply = THINK_BLOCK.matcher(reply).replaceAll("").trim();
+
+                // Check for a planning outline fence first (takes priority over build fences).
         Matcher pm = PLANNING_FENCE.matcher(reply);
         if (pm.find() && mode != Mode.BUILDING) {
             String outlineJson = pm.group(1).trim();
