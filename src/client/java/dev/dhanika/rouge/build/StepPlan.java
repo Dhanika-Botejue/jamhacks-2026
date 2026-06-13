@@ -34,22 +34,21 @@ public final class StepPlan {
         String circuit = root.has("circuit") ? root.get("circuit").getAsString() : "Circuit";
 
         List<Step> steps = new ArrayList<>();
-        JsonArray stepsArr = root.getAsJsonArray("steps");
+        // Tolerate a missing/malformed "steps" key: yields an empty plan, which callers
+        // report as "no steps" rather than crashing with an NPE → "failed to parse".
+        JsonArray stepsArr = root.has("steps") && root.get("steps").isJsonArray()
+                ? root.getAsJsonArray("steps") : new JsonArray();
         for (JsonElement el : stepsArr) {
+            if (!el.isJsonObject()) continue;
             JsonObject s = el.getAsJsonObject();
             String title = s.has("title") ? s.get("title").getAsString() : "Step";
             String explanation = s.has("explanation") ? s.get("explanation").getAsString() : "";
 
             List<BlockEntry> blocks = new ArrayList<>();
-            if (s.has("blocks")) {
+            if (s.has("blocks") && s.get("blocks").isJsonArray()) {
                 for (JsonElement be : s.getAsJsonArray("blocks")) {
-                    JsonObject b = be.getAsJsonObject();
-                    blocks.add(new BlockEntry(
-                            b.get("x").getAsInt(),
-                            b.get("y").getAsInt(),
-                            b.get("z").getAsInt(),
-                            b.get("block").getAsString()
-                    ));
+                    BlockEntry entry = BlockEntries.parse(be);
+                    if (entry != null) blocks.add(entry);
                 }
             }
             steps.add(new Step(title, explanation, Collections.unmodifiableList(blocks)));

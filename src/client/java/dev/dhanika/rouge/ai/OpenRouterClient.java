@@ -36,8 +36,20 @@ public final class OpenRouterClient {
     public OpenRouterClient(OpenRouterConfig config) {
         this.config = config;
         this.http = HttpClient.newBuilder()
-                .connectTimeout(Duration.ofSeconds(15))
+                // Short connect timeout so a dead endpoint fails over to a fallback fast;
+                // the per-request body timeout below stays generous for slow generations.
+                .connectTimeout(Duration.ofSeconds(8))
                 .build();
+    }
+
+    /**
+     * Warms up the client ahead of the first real request: triggers async free-model
+     * discovery so the fallback chain is ready, and opens the TLS connection to OpenRouter
+     * so the first completion doesn't pay the handshake cost. Safe to call repeatedly.
+     */
+    public void prewarm() {
+        if (!config.hasToken()) return;
+        ModelDiscovery.getFreeModels(config.token(), http);
     }
 
     /**
@@ -140,7 +152,7 @@ public final class OpenRouterClient {
         JsonObject body = new JsonObject();
         body.addProperty("model", model);
         body.add("messages", messages);
-        body.addProperty("max_tokens", 2048);
+        body.addProperty("max_tokens", 4096);
 
         HttpRequest request;
         try {
@@ -200,6 +212,10 @@ public final class OpenRouterClient {
             String content = message.get("content").getAsString().trim();
             if (content.isEmpty()) {
                 throw new RuntimeException("The model returned a blank response (finish_reason=" + finishReason + "). Try again.");
+            }
+            if ("length".equals(finishReason)) {
+                // Response was cut off at the token limit — the JSON fence will be incomplete.
+                throw new RuntimeException("The model's response was cut off (token limit reached). Try asking for a simpler build, or switch models with /rouge model.");
             }
             return content;
         } catch (RuntimeException e) {

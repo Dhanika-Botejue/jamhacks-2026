@@ -38,19 +38,46 @@ public final class StepSession {
 
     /** Begins a build: anchors it in front of the player and shows step 1. */
     public static void start(StepPlan p) {
+        int total = p.steps().size();
+        if (total == 0) {
+            ChatDisplay.system("That build came back empty — ask me to try again, or describe it differently.");
+            plan = null;
+            return;
+        }
+
         plan = p;
         stepIndex = 0;
         anchor = computeAnchor();
 
-        int total = p.steps().size();
         ChatDisplay.system("Building " + p.circuit() + " — " + total + " step"
-                + (total == 1 ? "" : "s") + ". I'll project each step as a hologram in front of you.");
-        if (total == 0) {
-            ChatDisplay.system("…but this build has no steps. Ask me to try again.");
-            plan = null;
+                + (total == 1 ? "" : "s") + ". " + locationLine());
+        showStep();
+    }
+
+    /**
+     * Re-places the active build so its footprint is centered in front of the player again,
+     * then re-shows the current step. Lets the player move the hologram without restarting.
+     */
+    public static void recenter() {
+        if (plan == null) {
+            ChatDisplay.system("No active build to move. Ask me to teach you something first.");
             return;
         }
+        anchor = computeAnchor();
+        ChatDisplay.system("Moved the hologram. " + locationLine());
         showStep();
+    }
+
+    /** Human-readable note of where the hologram is anchored in the world. */
+    private static String locationLine() {
+        if (anchor == null) return "";
+        int[] b = footprint();
+        int minX = anchor.getX() + b[0], maxX = anchor.getX() + b[1];
+        int minY = anchor.getY() + b[2], maxY = anchor.getY() + b[3];
+        int minZ = anchor.getZ() + b[4], maxZ = anchor.getZ() + b[5];
+        return "It's floating in front of you, spanning x " + minX + "–" + maxX
+                + ", y " + minY + "–" + maxY + ", z " + minZ + "–" + maxZ
+                + ". Say \"move\" (or /rouge move) to re-place it where you're standing.";
     }
 
     /** Advances to the next step (or finishes). Returns whether the build continues. */
@@ -143,11 +170,56 @@ public final class StepSession {
         return added.isEmpty() ? current : added;
     }
 
-    /** Anchors the build a couple of blocks in front of the player, at foot level. */
+    /**
+     * Anchors the build so its footprint is centered a few blocks in front of the player,
+     * resting at foot level. The build's blocks use world-absolute orientation (their
+     * blockstate facings are baked in), so we can't rotate it to face the player — instead
+     * we translate it to a predictable, visible spot and report where that is.
+     */
     private static BlockPos computeAnchor() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.player == null) return BlockPos.ZERO;
+        if (mc.player == null || plan == null) return BlockPos.ZERO;
+
+        int[] b = footprint();                 // [minX,maxX, minY,maxY, minZ,maxZ] in build-local coords
+        int minX = b[0], maxX = b[1], minY = b[2], minZ = b[4], maxZ = b[5];
+        double localCenterX = (minX + maxX) / 2.0;
+        double localCenterZ = (minZ + maxZ) / 2.0;
+
         Direction facing = mc.player.getDirection();
-        return mc.player.blockPosition().relative(facing, 2);
+        BlockPos feet = mc.player.blockPosition();
+
+        // Push the build's center forward so the near edge clears the player.
+        int width = maxX - minX + 1;
+        int depth = maxZ - minZ + 1;
+        int ahead = 2 + Math.max(width, depth) / 2;
+        int centerX = feet.getX() + facing.getStepX() * ahead;
+        int centerZ = feet.getZ() + facing.getStepZ() * ahead;
+
+        // anchor so that anchor + localCenter == world center, and the build's bottom sits at feet level.
+        int anchorX = (int) Math.round(centerX - localCenterX);
+        int anchorZ = (int) Math.round(centerZ - localCenterZ);
+        int anchorY = feet.getY() - minY;
+        return new BlockPos(anchorX, anchorY, anchorZ);
+    }
+
+    /**
+     * Bounding box of the whole build in build-local coordinates, as
+     * {@code [minX,maxX, minY,maxY, minZ,maxZ]}. Scans every step so it's correct even if
+     * the last step isn't strictly cumulative. Defaults to a unit box for an empty build.
+     */
+    private static int[] footprint() {
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE, minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE, maxZ = Integer.MIN_VALUE;
+        if (plan != null) {
+            for (StepPlan.Step step : plan.steps()) {
+                for (BlockEntry e : step.blocks()) {
+                    minX = Math.min(minX, e.x()); maxX = Math.max(maxX, e.x());
+                    minY = Math.min(minY, e.y()); maxY = Math.max(maxY, e.y());
+                    minZ = Math.min(minZ, e.z()); maxZ = Math.max(maxZ, e.z());
+                }
+            }
+        }
+        if (minX > maxX) return new int[]{0, 0, 0, 0, 0, 0}; // no blocks
+        return new int[]{minX, maxX, minY, maxY, minZ, maxZ};
     }
 }

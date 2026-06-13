@@ -31,6 +31,11 @@ public final class RougeCommands {
                                     StepSession.showCurrent();
                                     return 1;
                                 }))
+                        .then(ClientCommandManager.literal("move")
+                                .executes(ctx -> {
+                                    StepSession.recenter();
+                                    return 1;
+                                }))
                         .then(ClientCommandManager.literal("stop")
                                 .executes(ctx -> {
                                     StepSession.stop();

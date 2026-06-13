@@ -65,6 +65,13 @@ BUILD DIRECTIVE — pick the simplest shape that fits:
 }
 ```
 
+CRITICAL — buildable vs blueprint:
+- {"use":"id"} and "parts" ONLY work with [buildable] ids. Using a [blueprint] id there
+  produces nothing and fails. For ANY [blueprint] (piston doors, flying machines, farms,
+  vault doors, etc.), use shape 3 (CUSTOM) and write out the explicit blocks yourself,
+  OR shape 2 (COMPOSE) using only [buildable] part ids.
+- When unsure whether an id is buildable, default to shape 3 (CUSTOM) with explicit blocks.
+
 RULES FOR GENERATED BLOCKS (compose wiring + custom steps)
 - Coordinates: x = east(+), y = up(+), z = south(+). Start at (0,0,0). Keep builds compact.
 - Use real 1.20.1 block IDs with blockstate properties where they matter, e.g.

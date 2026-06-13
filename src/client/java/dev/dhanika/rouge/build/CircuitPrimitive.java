@@ -74,15 +74,10 @@ public final class CircuitPrimitive {
                 String sTitle = s.has("title") ? s.get("title").getAsString() : "Step";
                 String sExpl  = s.has("explanation") ? s.get("explanation").getAsString() : "";
                 List<BlockEntry> blocks = new ArrayList<>();
-                if (s.has("blocks")) {
+                if (s.has("blocks") && s.get("blocks").isJsonArray()) {
                     for (JsonElement be : s.getAsJsonArray("blocks")) {
-                        JsonObject b = be.getAsJsonObject();
-                        blocks.add(new BlockEntry(
-                                b.get("x").getAsInt(),
-                                b.get("y").getAsInt(),
-                                b.get("z").getAsInt(),
-                                b.get("block").getAsString()
-                        ));
+                        BlockEntry entry = BlockEntries.parse(be);
+                        if (entry != null) blocks.add(entry);
                     }
                 }
                 steps.add(new StepPlan.Step(sTitle, sExpl, Collections.unmodifiableList(blocks)));
