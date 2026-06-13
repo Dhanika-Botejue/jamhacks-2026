@@ -24,7 +24,10 @@ final class BlockEntries {
         String block = string(b, "block");
         if (block == null || block.isBlank()) return null; // nothing to render
 
-        return new BlockEntry(intOr(b, "x", 0), intOr(b, "y", 0), intOr(b, "z", 0), block);
+        // Canonicalize the id (spaces→underscores, lowercase, default namespace) so it both
+        // renders and matches the placed block in BuildDiff — see BuildSpec.normalizeBlockId.
+        return new BlockEntry(intOr(b, "x", 0), intOr(b, "y", 0), intOr(b, "z", 0),
+                BuildSpec.normalizeBlockId(block));
     }
 
     /** Reads an int field, tolerating numeric strings and absent keys. */
