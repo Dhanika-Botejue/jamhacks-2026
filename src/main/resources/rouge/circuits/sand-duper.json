@@ -1,0 +1,8 @@
+{
+  "id": "sand-duper",
+  "title": "Sand Duplicator",
+  "category": "utility",
+  "description": "Duplicates sand (or gravel, concrete powder) using a TNT-based or falling block glitch. The classic design places sand on a trapdoor above a TNT block — a piston pushes a block next to the sand, creating a falling sand entity, while simultaneously a TNT explosion absorbs the falling entity and spawns a duplicate when the sand lands. Requires careful timing via repeaters. Note: this is a technical exploit, not intended gameplay. May be patched in future versions. Each activation yields 1 extra sand block.",
+  "aliases": ["sand duplicator", "dupe", "sand dupe", "gravel dupe", "falling block dupe"],
+  "footprint": "4x4x3"
+}

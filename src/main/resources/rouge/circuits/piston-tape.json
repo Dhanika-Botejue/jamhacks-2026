@@ -1,0 +1,53 @@
+{
+  "id": "piston-tape",
+  "title": "Piston Tape (Sequential Pusher)",
+  "category": "mechanism",
+  "description": "A row of pistons that fire in sequence, each pushing a block one step at a time. Controlled by a repeater delay chain — the first piston fires, then the next, creating a wave-like push effect. Used in conveyor-style block movers and sequential door mechanisms.",
+  "aliases": ["sequential piston", "piston wave", "piston conveyor"],
+  "inputs": ["trigger"],
+  "outputs": [],
+  "footprint": "5x2x1",
+  "steps": [
+    {
+      "title": "Foundation",
+      "explanation": "5-wide, 1-deep stone base. Pistons sit at x=0 and x=2; the delay chain runs along the base. The payload block starts at x=1.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":4,"y":0,"z":0,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "Pistons and payload",
+      "explanation": "Piston A at (0,1,0) facing east. Piston B at (2,1,0) facing east. Payload block (stone) at (1,1,0). When A fires it pushes the block to x=2; then B fires (after delay) and pushes it to x=3. The block moves two steps.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":4,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:piston[extended=false,facing=east]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:stone_bricks"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:piston[extended=false,facing=east]"}
+      ]
+    },
+    {
+      "title": "Trigger button and delay chain",
+      "explanation": "Button at (4,1,0). Dust at (4,1,0) → repeater at (3,1,0) facing west delay=2 → feeds piston B at x=2. A direct dust at (4,1,0) also runs west to (0,1,0) powering piston A immediately. Piston A fires first (no delay); B fires 2 ticks later — sequential push.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":4,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:piston[extended=false,facing=east]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:stone_bricks"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:piston[extended=false,facing=east]"},
+        {"x":4,"y":1,"z":0,"block":"minecraft:stone_button[face=wall,facing=west,powered=false]"},
+        {"x":3,"y":1,"z":0,"block":"minecraft:repeater[delay=2,facing=west,locked=false,powered=false]"}
+      ]
+    }
+  ]
+}

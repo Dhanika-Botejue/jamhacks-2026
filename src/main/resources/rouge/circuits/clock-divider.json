@@ -1,0 +1,76 @@
+{
+  "id": "clock-divider",
+  "title": "Clock Divider (Frequency Halver)",
+  "category": "timing",
+  "description": "Takes a fast clock input and outputs a signal that toggles half as often. Built from a T flip-flop clocked by the input. Stack multiple dividers to divide frequency further (divide by 4, 8, etc.). Common in sequencers and binary counters.",
+  "aliases": ["frequency divider", "clock halver", "binary divider"],
+  "inputs": ["clock_in"],
+  "outputs": ["clock_out"],
+  "footprint": "5x2x3",
+  "steps": [
+    {
+      "title": "Foundation",
+      "explanation": "5-wide, 3-deep stone base. The hopper clock or torch clock feeds from the left; the T flip-flop occupies the right 4 columns.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},{"x":4,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},{"x":3,"y":0,"z":2,"block":"minecraft:stone"},{"x":4,"y":0,"z":2,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "Clock input (torch oscillator)",
+      "explanation": "Two torches at (0,1,0) and (0,0,1) — the classic 2-torch clock. The torch on z=0 powers dust at (1,1,0); the alternating signal from the clock will feed the T flip-flop toggle input at x=1.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},{"x":4,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},{"x":3,"y":0,"z":2,"block":"minecraft:stone"},{"x":4,"y":0,"z":2,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:redstone_torch"},
+        {"x":0,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:redstone_wire"}
+      ]
+    },
+    {
+      "title": "RS latch (flip-flop memory)",
+      "explanation": "NOR torches at (3,0,0) and (3,0,2) cross-coupled via dust at x=4, z=0→z=1→z=2 and the middle row. This is the RS latch storing the toggle state. Both torches start lit.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},{"x":4,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},{"x":3,"y":0,"z":2,"block":"minecraft:stone"},{"x":4,"y":0,"z":2,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:redstone_torch"},
+        {"x":0,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":2,"block":"minecraft:redstone_wire"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:redstone_wall_torch[facing=east,lit=true]"},
+        {"x":3,"y":0,"z":2,"block":"minecraft:redstone_wall_torch[facing=east,lit=true]"},
+        {"x":4,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":4,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":4,"y":1,"z":2,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":3,"y":1,"z":1,"block":"minecraft:redstone_wire"}
+      ]
+    },
+    {
+      "title": "Q output lamp",
+      "explanation": "The Q output from the latch (torch at x=3,z=0) drives dust east along z=0 to a lamp at (4,0,-1). Each rising edge of the clock toggles the flip-flop — the lamp toggles at half the clock frequency.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},{"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":1,"block":"minecraft:stone"},{"x":1,"y":0,"z":1,"block":"minecraft:stone"},{"x":2,"y":0,"z":1,"block":"minecraft:stone"},{"x":3,"y":0,"z":1,"block":"minecraft:stone"},{"x":4,"y":0,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":0,"z":2,"block":"minecraft:stone"},{"x":1,"y":0,"z":2,"block":"minecraft:stone"},{"x":2,"y":0,"z":2,"block":"minecraft:stone"},{"x":3,"y":0,"z":2,"block":"minecraft:stone"},{"x":4,"y":0,"z":2,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:redstone_torch"},
+        {"x":0,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":2,"block":"minecraft:redstone_wire"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:redstone_wall_torch[facing=east,lit=true]"},
+        {"x":3,"y":0,"z":2,"block":"minecraft:redstone_wall_torch[facing=east,lit=true]"},
+        {"x":4,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":4,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":4,"y":1,"z":2,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":3,"y":1,"z":1,"block":"minecraft:redstone_wire"},
+        {"x":4,"y":0,"z":-1,"block":"minecraft:redstone_lamp"}
+      ]
+    }
+  ]
+}

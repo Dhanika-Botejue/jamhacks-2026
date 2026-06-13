@@ -1,0 +1,8 @@
+{
+  "id": "bamboo-farm",
+  "title": "Bamboo Farm",
+  "category": "farm",
+  "description": "A zero-tick or observer-based bamboo farm. Bamboo grows one segment at a time and can be harvested by a piston that breaks all segments above a 1-block stub. An observer watches the bamboo stub — when it grows, the observer fires a piston that breaks the top, sending drops into a water stream below. The 1-block stub remains, restarting the cycle. Extremely fast with zero-tick pulses; useful for fuel (smelting) and scaffolding.",
+  "aliases": ["bamboo", "bamboo grinder", "bamboo fuel farm"],
+  "footprint": "4x8x4"
+}

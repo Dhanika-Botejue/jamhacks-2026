@@ -1,0 +1,52 @@
+{
+  "id": "water-stream",
+  "title": "Water Stream Channel",
+  "category": "utility",
+  "description": "A horizontal channel of flowing water that automatically transports items, mobs, or players in one direction. A single water source at one end flows 8 blocks before stopping — use ice or packed ice under the channel to extend speed. Signs or slabs on sides contain the stream.",
+  "aliases": ["water channel", "item stream", "water conveyor", "water lane"],
+  "inputs": [],
+  "outputs": [],
+  "footprint": "6x2x1",
+  "steps": [
+    {
+      "title": "Channel walls and floor",
+      "explanation": "Place a stone base from x=0 to x=5 at y=0. Add stone walls on z=-1 and z=1 for the same length to contain the stream. Leave the interior (z=0) open for the water channel.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},{"x":5,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":1,"block":"minecraft:stone"},{"x":1,"y":1,"z":1,"block":"minecraft:stone"},{"x":2,"y":1,"z":1,"block":"minecraft:stone"},
+        {"x":3,"y":1,"z":1,"block":"minecraft:stone"},{"x":4,"y":1,"z":1,"block":"minecraft:stone"},{"x":5,"y":1,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":-1,"block":"minecraft:stone"},{"x":1,"y":1,"z":-1,"block":"minecraft:stone"},{"x":2,"y":1,"z":-1,"block":"minecraft:stone"},
+        {"x":3,"y":1,"z":-1,"block":"minecraft:stone"},{"x":4,"y":1,"z":-1,"block":"minecraft:stone"},{"x":5,"y":1,"z":-1,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "Water source",
+      "explanation": "Place a single water source block at (0,1,0) — the start of the channel. Water flows east naturally for up to 8 blocks. The flowing water carries items and entities toward the end of the channel.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},{"x":5,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":1,"block":"minecraft:stone"},{"x":1,"y":1,"z":1,"block":"minecraft:stone"},{"x":2,"y":1,"z":1,"block":"minecraft:stone"},
+        {"x":3,"y":1,"z":1,"block":"minecraft:stone"},{"x":4,"y":1,"z":1,"block":"minecraft:stone"},{"x":5,"y":1,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":-1,"block":"minecraft:stone"},{"x":1,"y":1,"z":-1,"block":"minecraft:stone"},{"x":2,"y":1,"z":-1,"block":"minecraft:stone"},
+        {"x":3,"y":1,"z":-1,"block":"minecraft:stone"},{"x":4,"y":1,"z":-1,"block":"minecraft:stone"},{"x":5,"y":1,"z":-1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:water[level=0]"}
+      ]
+    },
+    {
+      "title": "Collection hopper at the end",
+      "explanation": "Place a hopper at (5,0,0) with a chest below it at (5,-1,0). Items floating in the stream reach the end and fall into the hopper, then collect in the chest. Alternatively, drop into an open void or another channel at the end.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},{"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:stone"},{"x":4,"y":0,"z":0,"block":"minecraft:stone"},{"x":5,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":1,"block":"minecraft:stone"},{"x":1,"y":1,"z":1,"block":"minecraft:stone"},{"x":2,"y":1,"z":1,"block":"minecraft:stone"},
+        {"x":3,"y":1,"z":1,"block":"minecraft:stone"},{"x":4,"y":1,"z":1,"block":"minecraft:stone"},{"x":5,"y":1,"z":1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":-1,"block":"minecraft:stone"},{"x":1,"y":1,"z":-1,"block":"minecraft:stone"},{"x":2,"y":1,"z":-1,"block":"minecraft:stone"},
+        {"x":3,"y":1,"z":-1,"block":"minecraft:stone"},{"x":4,"y":1,"z":-1,"block":"minecraft:stone"},{"x":5,"y":1,"z":-1,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:water[level=0]"},
+        {"x":5,"y":0,"z":0,"block":"minecraft:hopper[enabled=true,facing=down]"},
+        {"x":5,"y":-1,"z":0,"block":"minecraft:chest[facing=south,type=single]"}
+      ]
+    }
+  ]
+}

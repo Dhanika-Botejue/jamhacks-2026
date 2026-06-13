@@ -1,0 +1,30 @@
+{
+  "id": "daylight-sensor",
+  "title": "Daylight Sensor",
+  "category": "detection",
+  "description": "Outputs a redstone signal proportional to the sky light level. Signal strength 0-15 based on time of day. Right-click to toggle between daytime mode (peak at noon) and inverted/nighttime mode (peak at midnight). Used to automate lights, doors, and farms by time of day.",
+  "aliases": ["day sensor", "solar sensor", "day detector", "night detector", "sun sensor"],
+  "inputs": [],
+  "outputs": ["light_signal"],
+  "footprint": "2x2x1",
+  "steps": [
+    {
+      "title": "Sensor block",
+      "explanation": "Place a daylight sensor block at (0,1,0). It must have an unobstructed view of the sky (no blocks above it). The block emits signal strength 0-15 from all six faces. During the day the signal peaks around noon (strength 15); at night it drops to 0 unless you right-click to invert.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:daylight_detector[inverted=false,power=0]"}
+      ]
+    },
+    {
+      "title": "Output wire and lamp",
+      "explanation": "Dust at (1,1,0) carries the signal east. A redstone lamp at (1,0,-1) shows whether daytime output is active. Right-click the sensor to toggle inverted mode (night-mode) — the lamp will then light only at night.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},{"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:daylight_detector[inverted=false,power=0]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":1,"y":0,"z":-1,"block":"minecraft:redstone_lamp"}
+      ]
+    }
+  ]
+}

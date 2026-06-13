@@ -1,0 +1,44 @@
+{
+  "id": "sticky-piston-retract",
+  "title": "Sticky Piston Retractor",
+  "category": "mechanism",
+  "description": "A sticky piston that extends to push a block out, then retracts to pull it back. The defining feature of sticky pistons — unlike regular pistons, they pull the block back when unpowered. Used in hidden doors, secret passages, and block-swapping mechanisms.",
+  "aliases": ["sticky piston", "piston retractor", "block puller", "piston pull"],
+  "inputs": ["power"],
+  "outputs": [],
+  "footprint": "3x2x1",
+  "steps": [
+    {
+      "title": "Foundation",
+      "explanation": "3-wide, 1-deep stone base. The sticky piston sits at x=0; its payload block starts at x=1 (in front), and x=2 is where the block lands when extended.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "Sticky piston and payload",
+      "explanation": "Sticky piston at (0,1,0) facing east. A building block (concrete or stone) at (1,1,0) — this is the block the piston will push and pull. When powered, the piston extends, pushing the block to (2,1,0). When unpowered, it retracts and pulls the block back to (1,1,0).",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:sticky_piston[extended=false,facing=east]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:stone_bricks"}
+      ]
+    },
+    {
+      "title": "Control lever",
+      "explanation": "Lever at (0,2,0) on top of the piston body. When lever is ON, piston extends (pushes block to x=2). When lever is OFF, piston retracts and pulls block back to x=1. The block alternates between two positions on each lever flip.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:sticky_piston[extended=false,facing=east]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:stone_bricks"},
+        {"x":0,"y":2,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"}
+      ]
+    }
+  ]
+}

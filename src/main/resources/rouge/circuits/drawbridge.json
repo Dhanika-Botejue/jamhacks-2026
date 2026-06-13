@@ -1,0 +1,8 @@
+{
+  "id": "drawbridge",
+  "title": "Drawbridge",
+  "category": "door",
+  "description": "A retractable bridge made of sticky pistons that extends or retracts a floor of blocks over a gap. When closed, players can walk across; when open the blocks retract into the wall leaving an impassable moat. Uses a line of sticky pistons on each side of the gap, triggered by a lever or T flip-flop. Typically 3-5 blocks wide with pistons embedded in the walls. Double-piston extenders required for bridges over 2 blocks deep. Often combined with a portcullis (vertical iron bars) for a complete gate effect.",
+  "aliases": ["drawbridge", "retractable bridge", "moat bridge", "castle gate"],
+  "footprint": "8x3x5"
+}

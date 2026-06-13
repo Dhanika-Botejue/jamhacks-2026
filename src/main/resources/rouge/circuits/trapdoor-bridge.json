@@ -1,0 +1,43 @@
+{
+  "id": "trapdoor-bridge",
+  "title": "Trapdoor Bridge",
+  "category": "mechanism",
+  "description": "A retractable floor of trapdoors that opens or closes on a redstone signal, creating a hidden pit or a walkable bridge. Iron trapdoors are controlled by redstone; when powered they open (horizontal), unpowered they close (vertical, solid). A lever or T flip-flop toggles the bridge.",
+  "aliases": ["trapdoor floor", "hidden pit", "retractable bridge", "trapdoor"],
+  "inputs": ["toggle"],
+  "outputs": [],
+  "footprint": "4x2x1",
+  "steps": [
+    {
+      "title": "Foundation frame",
+      "explanation": "Place stone blocks on both ends as anchor frames: blocks at x=0 and x=3 at y=0. These are the wall-mounts the trapdoors hinge on.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:stone"}
+      ]
+    },
+    {
+      "title": "Iron trapdoors",
+      "explanation": "Place iron trapdoors at (1,0,0) and (2,0,0), both hinged on the bottom edge (face=bottom). When unpowered they lie flat (open=false, players can walk across). When powered they fold up (open=true, revealing a gap). Iron trapdoors respond to redstone; wooden ones need a direct power source.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:iron_trapdoor[facing=east,half=bottom,open=false,powered=false,waterlogged=false]"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:iron_trapdoor[facing=west,half=bottom,open=false,powered=false,waterlogged=false]"}
+      ]
+    },
+    {
+      "title": "Control lever and wiring",
+      "explanation": "Lever at (0,1,0) on the anchor stone. Dust at (1,1,0) carries signal to the east trapdoor at x=1. A second dust or repeater at (2,1,0) carries signal to the west trapdoor at x=2. Both trapdoors open simultaneously when lever is flipped — the bridge retracts.",
+      "blocks": [
+        {"x":0,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":3,"y":0,"z":0,"block":"minecraft:stone"},
+        {"x":1,"y":0,"z":0,"block":"minecraft:iron_trapdoor[facing=east,half=bottom,open=false,powered=false,waterlogged=false]"},
+        {"x":2,"y":0,"z":0,"block":"minecraft:iron_trapdoor[facing=west,half=bottom,open=false,powered=false,waterlogged=false]"},
+        {"x":0,"y":1,"z":0,"block":"minecraft:lever[face=floor,facing=south,powered=false]"},
+        {"x":1,"y":1,"z":0,"block":"minecraft:redstone_wire"},
+        {"x":2,"y":1,"z":0,"block":"minecraft:redstone_wire"}
+      ]
+    }
+  ]
+}

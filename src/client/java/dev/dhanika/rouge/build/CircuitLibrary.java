@@ -21,18 +21,24 @@ public final class CircuitLibrary {
 
     private static final String[] IDS = {
             // Buildable primitives — hand-authored, verified block data.
-            "not-gate", "and-gate", "or-gate",
-            "rs-latch", "t-flip-flop",
-            "torch-clock", "hopper-clock", "monostable",
-            "repeater-delay", "comparator-detect",
-            "piston-push", "observer-pulse",
-            "redstone-lamp",
+            "4-bit-counter", "and-gate", "bubble-column-elevator", "bud-switch",
+            "clock-divider", "comparator-latch", "d-latch", "daylight-sensor",
+            "dropper-clock", "falling-edge-detector", "item-filter", "lectern-signal",
+            "minecart-detector", "nand-gate", "nether-portal", "nor-gate",
+            "not-gate", "observer-pulse", "or-gate", "piston-push",
+            "piston-tape", "pulse-extender", "redstone-bridge", "redstone-lamp",
+            "repeater-delay", "rising-edge-detector", "rs-latch", "sticky-piston-retract",
+            "t-flip-flop", "trapdoor-bridge", "vertical-signal-transmitter", "water-stream",
+            "xnor-gate", "xor-gate",
             // Blueprint builds — description-only ground truth for larger machines.
-            "double-piston-extender", "flying-machine",
-            "piston-door-2x2", "piston-door-3x3",
-            "tnt-duper", "tnt-cannon", "item-elevator",
-            "item-sorter", "auto-sugarcane-farm", "hidden-staircase",
-            "auto-smelter", "iron-farm", "slime-block-elevator",
+            "auto-smelter", "auto-sugarcane-farm", "bamboo-farm", "cobblestone-generator",
+            "comparator-detect", "double-piston-extender", "drawbridge", "enderman-farm",
+            "flying-machine", "gold-farm", "hidden-staircase", "hopper-clock",
+            "iron-farm", "item-elevator", "item-sorter", "kelp-farm",
+            "mail-system", "melon-pumpkin-farm", "mob-farm", "monostable",
+            "piston-door-2x2", "piston-door-3x3", "piston-door-4x4", "sand-duper",
+            "slime-block-elevator", "storage-system", "tnt-cannon", "tnt-duper",
+            "torch-clock", "tree-farm", "vault-door", "villager-breeder", "wheat-farm"
     };
 
     private static Map<String, CircuitPrimitive> cache;

@@ -1,0 +1,8 @@
+{
+  "id": "gold-farm",
+  "title": "Gold Farm (Nether Portal)",
+  "category": "farm",
+  "description": "A large Nether-side gold farm that exploits piglin and zombified piglin spawning near nether portals. Build a 22x22 platform at Y=128 in the Nether to concentrate spawns. Mobs walk off the edge and fall into a killing chamber at the bottom (23.5 block fall for near-lethal damage). Hoppers collect gold nuggets and swords. Uses ~32 nether portals in a ring to maximize spawns. Afk platform for the player must be at the collection point, at least 24 blocks from the farm floor. Produces thousands of gold ingots per hour.",
+  "aliases": ["gold farm", "piglin farm", "zombified piglin farm", "nether gold"],
+  "footprint": "25x30x25"
+}
