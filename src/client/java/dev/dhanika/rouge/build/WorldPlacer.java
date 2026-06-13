@@ -48,6 +48,30 @@ public final class WorldPlacer {
     }
 
     /**
+     * Places step-plan blocks (the lighter {@link dev.dhanika.rouge.build.BlockEntry} without
+     * a role field) into the world. Used by Place mode in {@link dev.dhanika.rouge.teach.StepSession}.
+     */
+    public static boolean placeStepBlocks(List<dev.dhanika.rouge.build.BlockEntry> blocks, BlockPos anchor) {
+        IntegratedServer server = Minecraft.getInstance().getSingleplayerServer();
+        LocalPlayer player = Minecraft.getInstance().player;
+        if (server == null || player == null) return false;
+
+        ResourceKey<Level> dimension = player.level().dimension();
+        server.execute(() -> {
+            ServerLevel level = server.getLevel(dimension);
+            if (level == null) return;
+            HolderLookup<Block> blockLookup = server.registryAccess().lookupOrThrow(Registries.BLOCK);
+            for (dev.dhanika.rouge.build.BlockEntry b : blocks) {
+                try {
+                    BlockState state = BlockStateParser.parseForBlock(blockLookup, b.block(), false).blockState();
+                    level.setBlock(anchor.offset(b.x(), b.y(), b.z()), state, Block.UPDATE_ALL);
+                } catch (Exception ignored) {}
+            }
+        });
+        return true;
+    }
+
+    /**
      * Places {@code blocks} with their local coords offset by {@code anchor}.
      * Returns false if no integrated server is available.
      */

@@ -1,5 +1,6 @@
 package dev.dhanika.rouge.chat;
 
+import dev.dhanika.rouge.build.PlanningOutline;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
@@ -31,6 +32,20 @@ public final class ChatDisplay {
     /** An error line, in red. */
     public static void error(String message) {
         emit(message, ChatFormatting.RED);
+    }
+
+    /** A planning outline, in gold. Shows circuit name, parts, and the AI's refinement prompt. */
+    public static void plan(PlanningOutline outline) {
+        String header = "Planning: " + outline.circuit()
+                + (outline.footprint().isBlank() ? "" : " (" + outline.footprint() + ")");
+        emit(header, ChatFormatting.GOLD);
+        for (PlanningOutline.Part part : outline.parts()) {
+            emit(" • " + part.name() + " — " + part.description(), ChatFormatting.GOLD);
+        }
+        if (!outline.notes().isBlank()) {
+            emit(outline.notes(), ChatFormatting.GOLD);
+        }
+        emit("Say \"build it\" when ready, or describe what to change.", ChatFormatting.GOLD);
     }
 
     /** The user's own message, echoed in aqua so it's visible alongside Rouge's replies. */

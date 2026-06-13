@@ -8,6 +8,7 @@ import dev.dhanika.rouge.command.RougeCommands;
 import dev.dhanika.rouge.render.GhostRenderer;
 import dev.dhanika.rouge.render.ThinkingHud;
 import dev.dhanika.rouge.session.RougeSession;
+import dev.dhanika.rouge.ui.CircuitBrowserScreen;
 import dev.dhanika.rouge.teach.ProactiveTutor;
 import dev.dhanika.rouge.teach.StepSession;
 import dev.dhanika.rouge.ui.CircuitBrowserScreen;

@@ -45,11 +45,15 @@ public final class GhostRenderer {
     private static final int GHOST_ALPHA = 110;
 
     // Outline colours (r, g, b, a).
-    private static final float[] NEW_COLOR = {0.30f, 1.00f, 0.45f, 0.95f}; // bright green — place these now
-    private static final float[] OLD_COLOR = {0.55f, 0.70f, 1.00f, 0.35f}; // faint blue — already shown
+    private static final float[] NEW_COLOR     = {0.30f, 1.00f, 0.45f, 0.95f}; // bright green — place these now
+    private static final float[] OLD_COLOR     = {0.55f, 0.70f, 1.00f, 0.35f}; // faint blue — already placed
+    private static final float[] PREVIEW_COLOR = {1.00f, 0.80f, 0.10f, 0.70f}; // gold — interactive planning preview
 
     private static volatile List<Ghost> ghosts = List.of();
     private static volatile boolean active = false;
+
+    private static volatile List<Ghost> previewGhosts = List.of();
+    private static volatile boolean previewActive = false;
 
     private GhostRenderer() {}
 
@@ -93,11 +97,28 @@ public final class GhostRenderer {
         ghosts = List.of();
     }
 
+    /** Shows a planning-mode preview hologram with gold outlines, independent of the step hologram. */
+    public static void showPreview(BlockPos anchor, List<BlockEntry> blocks) {
+        List<Ghost> built = new ArrayList<>(blocks.size());
+        for (BlockEntry b : blocks) {
+            BlockState state = parse(b.block());
+            if (state == null) continue;
+            BlockPos world = anchor.offset(b.x(), b.y(), b.z());
+            built.add(new Ghost(world, state, false)); // isNew unused for preview; color is always PREVIEW_COLOR
+        }
+        previewGhosts = List.copyOf(built);
+        previewActive = true;
+    }
+
+    /** Clears the planning-mode preview hologram without affecting any active step hologram. */
+    public static void clearPreview() {
+        previewActive = false;
+        previewGhosts = List.of();
+    }
+
     /** Registered on {@code WorldRenderEvents.AFTER_TRANSLUCENT}. */
     public static void render(WorldRenderContext context) {
-        if (!active) return;
-        List<Ghost> snapshot = ghosts;
-        if (snapshot.isEmpty()) return;
+        if (!active && !previewActive) return;
 
         try {
             Minecraft mc = Minecraft.getInstance();
@@ -108,25 +129,41 @@ public final class GhostRenderer {
             MultiBufferSource.BufferSource buffers = mc.renderBuffers().bufferSource();
             BlockRenderDispatcher dispatcher = mc.getBlockRenderer();
 
-            // 1. Real block models, drawn semi-transparent so the preview is obviously a ghost.
-            //    We force every vertex's alpha and route the model onto the translucent layer.
-            VertexConsumer translucent = new GhostAlpha(buffers.getBuffer(RenderType.translucent()), GHOST_ALPHA);
-            MultiBufferSource ghostSource = renderType -> translucent;
-            for (Ghost g : snapshot) {
-                pose.pushPose();
-                pose.translate(g.pos.getX() - cam.x, g.pos.getY() - cam.y, g.pos.getZ() - cam.z);
-                dispatcher.renderSingleBlock(g.state, pose, ghostSource,
-                        LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
-                pose.popPose();
+            // Step hologram (blue/green).
+            List<Ghost> snapshot = ghosts;
+            if (active && !snapshot.isEmpty()) {
+                for (Ghost g : snapshot) {
+                    pose.pushPose();
+                    pose.translate(g.pos.getX() - cam.x, g.pos.getY() - cam.y, g.pos.getZ() - cam.z);
+                    dispatcher.renderSingleBlock(g.state, pose, buffers,
+                            LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+                    pose.popPose();
+                }
+                VertexConsumer lines = buffers.getBuffer(RenderType.lines());
+                for (Ghost g : snapshot) {
+                    float[] c = g.isNew ? NEW_COLOR : OLD_COLOR;
+                    double x = g.pos.getX() - cam.x, y = g.pos.getY() - cam.y, z = g.pos.getZ() - cam.z;
+                    LevelRenderer.renderLineBox(pose, lines, x, y, z, x + 1, y + 1, z + 1,
+                            c[0], c[1], c[2], c[3]);
+                }
             }
 
-            // 2. Outlines: highlight this step's new blocks, dim the rest.
-            VertexConsumer lines = buffers.getBuffer(RenderType.lines());
-            for (Ghost g : snapshot) {
-                float[] c = g.isNew ? NEW_COLOR : OLD_COLOR;
-                double x = g.pos.getX() - cam.x, y = g.pos.getY() - cam.y, z = g.pos.getZ() - cam.z;
-                LevelRenderer.renderLineBox(pose, lines, x, y, z, x + 1, y + 1, z + 1,
-                        c[0], c[1], c[2], c[3]);
+            // Planning preview hologram (gold).
+            List<Ghost> pSnap = previewGhosts;
+            if (previewActive && !pSnap.isEmpty()) {
+                for (Ghost g : pSnap) {
+                    pose.pushPose();
+                    pose.translate(g.pos.getX() - cam.x, g.pos.getY() - cam.y, g.pos.getZ() - cam.z);
+                    dispatcher.renderSingleBlock(g.state, pose, buffers,
+                            LightTexture.FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+                    pose.popPose();
+                }
+                VertexConsumer lines = buffers.getBuffer(RenderType.lines());
+                for (Ghost g : pSnap) {
+                    double x = g.pos.getX() - cam.x, y = g.pos.getY() - cam.y, z = g.pos.getZ() - cam.z;
+                    LevelRenderer.renderLineBox(pose, lines, x, y, z, x + 1, y + 1, z + 1,
+                            PREVIEW_COLOR[0], PREVIEW_COLOR[1], PREVIEW_COLOR[2], PREVIEW_COLOR[3]);
+                }
             }
 
             buffers.endBatch();
