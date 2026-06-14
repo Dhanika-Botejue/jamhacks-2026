@@ -253,6 +253,21 @@ public final class RougeSession {
         }
         String d = description.trim();
         ChatDisplay.userSaid(d);
+
+        // Deterministic path first: if the tracer can PROVE a one-block wire fix powers the
+        // destination, apply it immediately — no model call, so it can't be derailed by a
+        // rate-limit, a model switch, or a weak fallback model dropping the fence. This is the
+        // simplest fix by construction (the tracer ranks the strongest, closest verified gap).
+        List<BlockEntry> localFix = SignalTracer.bestVerifiedFix();
+        if (localFix != null && !localFix.isEmpty()) {
+            pendingFix = localFix;
+            pendingFixDesc = "routed the broken signal to its destination";
+            applyPendingFix();
+            return;
+        }
+
+        // No provably-correct single fix (e.g. a facing/orientation fault or a multi-block break):
+        // fall back to the model, and apply whatever rougefix it returns the instant it lands.
         autoApplyFix = true;      // apply the resulting rougefix the instant it lands
         pendingDebugTrace = true; // also inject the solution-vs-world comparison
         sendToAi(d, false);
@@ -263,10 +278,11 @@ public final class RougeSession {
 
         repairAttempts = 0; // a fresh user turn — allow the model a repair retry again
 
-        // A "fix it" phrase applies a pending rougefix from any mode (debugging can happen in
-        // plain chat, not just mid-build).
-        if (pendingFix != null && looksLikeFixRequest(text)) {
-            applyPendingFix();
+        // A "fix it" phrase applies a fix from any mode (debugging can happen in plain chat, not
+        // just mid-build): the pending rougefix if the model proposed one, otherwise a
+        // deterministic locally-verified fix. Only short-circuit when something is actually
+        // applicable, so an ambiguous "fix the problem" with nothing to fix still reaches the AI.
+        if (looksLikeFixRequest(text) && tryApplyFixNow()) {
             return;
         }
 
@@ -311,7 +327,10 @@ public final class RougeSession {
         }
         // Check for fix intent before the YES/NO switch so "fix it" never accidentally advances
         // the step or stops the build.
-        if (looksLikeFixRequest(text) || (pendingFix != null && Affirmation.of(text) == Affirmation.YES)) {
+        if (looksLikeFixRequest(text) && tryApplyFixNow()) {
+            return;
+        }
+        if (pendingFix != null && Affirmation.of(text) == Affirmation.YES) {
             applyPendingFix();
             return;
         }
@@ -573,6 +592,30 @@ public final class RougeSession {
                     b.get("z").getAsInt(), b.get("block").getAsString()));
         }
         pendingFix = blocks;
+    }
+
+    /**
+     * Applies a fix right now if one is available, and reports whether it handled the message.
+     * Prefers a model-proposed {@link #pendingFix}; if none is held, falls back to the tracer's
+     * deterministic best-verified fix so "fix it" still works when the model never emitted a
+     * fence (rate-limited, switched to a weak model, truncated, etc.). Returns {@code false} only
+     * when there is nothing applicable, so the caller can let the message route to the AI instead.
+     */
+    private static boolean tryApplyFixNow() {
+        if (pendingFix != null && !pendingFix.isEmpty()) {
+            applyPendingFix();
+            return true;
+        }
+        if (WorldPlacer.isAvailable()) {
+            List<BlockEntry> local = SignalTracer.bestVerifiedFix();
+            if (local != null && !local.isEmpty()) {
+                pendingFix = local;
+                pendingFixDesc = "routed the broken signal to its destination";
+                applyPendingFix();
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

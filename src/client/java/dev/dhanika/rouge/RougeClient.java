@@ -56,6 +56,7 @@ public class RougeClient implements ClientModInitializer {
             RougeSpeech.stop();
         });
 
-        LOGGER.info("Rouge initialized (model: {}).", config.model());
+        LOGGER.info("Rouge initialized (model: {}, {} API key(s) for silent rotation).",
+                config.model(), config.tokenCount());
     }
 }

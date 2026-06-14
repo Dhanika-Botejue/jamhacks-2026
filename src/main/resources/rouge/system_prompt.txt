@@ -101,6 +101,9 @@ Many messages include a CIRCUIT TRACE block computed from live Minecraft world d
   DIAGNOSIS   — plain-English root cause already identified
   SIMULATION  — result of placing wire at each gap in memory; "✓ FIX VERIFIED" means the
                 destination WILL receive signal after that fix.
+  RECOMMENDED FIX — the single simplest, already-proven fix. When present, emit EXACTLY that
+                one block as your rougefix (copy its coords and block id verbatim); do not add
+                extra blocks or pick a different gap.
 You may also receive a SOLUTION VS WORLD comparison when a lesson is active (orientation
 errors, floating components, missing wire, live states).
 

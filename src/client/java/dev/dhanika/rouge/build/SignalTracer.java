@@ -43,8 +43,149 @@ public final class SignalTracer {
      * and a simulated-fix result the AI can directly convert into a {@code rougefix}.
      */
     public static String traceSignalPath() {
+        Analysis a = analyze();
+        if (a == null) return "";
+
+        Map<BlockPos, BlockState> area = a.area();
+        List<BlockPos> sources = a.sources();
+        List<BlockPos> dests = a.dests();
+        Map<BlockPos, Integer> liveWire = a.liveWire();
+        Set<BlockPos> deadWire = a.deadWire();
+        Set<BlockPos> liveSet = liveWire.keySet();
+        List<BlockPos> path = a.path();
+        int minPwr = a.minPwr();
+        List<BlockPos> gaps = a.gaps();
+        List<SimResult> simResults = a.simResults();
+
+        // Build the output.
+        // ALWAYS start with a full component listing so the AI has exact coordinates
+        // even when no signal is flowing (lever off, circuit incomplete, etc.).
+        StringBuilder sb = new StringBuilder("CIRCUIT TRACE:");
+        sb.append("\n  COMPONENTS:");
+        int shown = 0;
+        for (Map.Entry<BlockPos, BlockState> e : area.entrySet()) {
+            if (shown++ >= 20) { sb.append("\n    (+more)"); break; }
+            sb.append("\n    ").append(compactLine(e.getKey(), e.getValue()));
+        }
+
+        // Signal analysis — only when there is active signal to trace.
+        if (!sources.isEmpty() || !liveWire.isEmpty()) {
+            if (!sources.isEmpty()) {
+                sb.append("\n  SOURCES:");
+                sources.forEach(p -> sb.append("\n    ").append(compactLine(p, area.get(p))));
+            }
+
+            if (!path.isEmpty()) {
+                sb.append("\n  SIGNAL PATH (high→low power):");
+                int pathShown = 0;
+                for (BlockPos p : path) {
+                    if (pathShown++ >= 8) { sb.append("\n    ..."); break; }
+                    int pwr = liveWire.getOrDefault(p, 0);
+                    sb.append("\n    wire@").append(coord(p)).append(" pwr=").append(pwr);
+                }
+            } else if (!liveWire.isEmpty()) {
+                int max = liveWire.values().stream().mapToInt(i -> i).max().orElse(0);
+                sb.append("\n  LIVE WIRE: ").append(liveWire.size()).append(" blocks, strength ").append(max).append("→").append(minPwr);
+            }
+
+            // Dead wire adjacent to live chain (something blocking signal).
+            deadWire.stream()
+                    .filter(d -> cardinalNeighbors(d).stream().anyMatch(liveSet::contains))
+                    .forEach(d -> sb.append("\n  BLOCKED: wire@").append(coord(d)).append(" pwr=0 adjacent to live chain"));
+
+            // Gaps.
+            if (!gaps.isEmpty()) {
+                sb.append("\n  GAP(S) — air where wire expected:");
+                gaps.stream().limit(5).forEach(g -> sb.append("\n    @").append(coord(g)));
+            }
+
+            // Destinations.
+            if (!dests.isEmpty()) {
+                sb.append("\n  DESTINATION(S):");
+                for (BlockPos d : dests) {
+                    boolean adjacent = cardinalNeighbors(d).stream().anyMatch(liveSet::contains);
+                    sb.append("\n    ").append(compactLine(d, area.get(d)));
+                    sb.append(adjacent ? " ← signal at border, check facing" : " ← NOT REACHED");
+                }
+            }
+
+            // Diagnosis.
+            if (!gaps.isEmpty() && !dests.isEmpty()) {
+                sb.append("\n  DIAGNOSIS: Wire gap(s) cut signal before reaching destination.");
+            } else if (!gaps.isEmpty()) {
+                sb.append("\n  DIAGNOSIS: Wire chain ends prematurely; ").append(gaps.size()).append(" gap(s).");
+            } else if (!dests.isEmpty()) {
+                sb.append("\n  DIAGNOSIS: Signal present but destination not reached — check facing/orientation.");
+            }
+
+            // Simulation. simResults is pre-sorted best-first (verified direct fixes, then by
+            // signal strength, then proximity), so the first verified entry is the simplest fix.
+            if (!simResults.isEmpty()) {
+                sb.append("\n  SIMULATION:");
+                for (SimResult r : simResults) {
+                    sb.append("\n    Place wire@").append(coord(r.pos)).append(" (pwr≈").append(r.estimatedPower).append(")");
+                    if (r.reachesDestDirect) sb.append(" → destination receives signal. ✓ FIX VERIFIED");
+                    else if (r.reachesDestTwoHop) sb.append(" → destination within 2 blocks; fill remaining gap(s).");
+                    else sb.append(" → extends chain, destination still not reached.");
+                }
+                // Single, minimal, proven fix — tell the model exactly what to emit so even a weak
+                // fallback model just copies one block into a rougefix instead of guessing.
+                simResults.stream().filter(r -> r.reachesDestDirect).findFirst().ifPresent(best ->
+                        sb.append("\n  RECOMMENDED FIX (simplest, verified): place minecraft:redstone_wire @")
+                                .append(coord(best.pos))
+                                .append(" — emit exactly this one block as rougefix; it powers the destination."));
+            }
+        } else {
+            // No active signal — tell the AI so it doesn't think data is missing.
+            sb.append("\n  NOTE: No active power source detected (lever/button may be OFF, or no source placed).");
+            if (!deadWire.isEmpty()) sb.append(" Wire is present but carries no signal.");
+            if (!dests.isEmpty()) {
+                sb.append("\n  DESTINATION(S) (unpowered):");
+                dests.forEach(d -> sb.append("\n    ").append(compactLine(d, area.get(d))));
+            }
+        }
+
+        return sb.toString();
+    }
+
+    /**
+     * Returns the single simplest fix the tracer can PROVE reaches a destination: one
+     * {@code minecraft:redstone_wire} at the verified gap with the strongest incoming signal
+     * (ties broken by proximity to the destination). Empty when no gap-fill is provably correct
+     * — orientation/facing faults and multi-block breaks have no single proven fix, so those
+     * fall back to the model.
+     *
+     * <p>This lets {@code /fix} apply a deterministic repair with no model round-trip, so it is
+     * immune to rate-limits, model switching, and a weak fallback model omitting the fence.
+     */
+    public static List<BlockEntry> bestVerifiedFix() {
+        Analysis a = analyze();
+        if (a == null) return Collections.emptyList();
+        // simResults is sorted best-first, so the first verified-direct entry is the simplest fix.
+        for (SimResult r : a.simResults()) {
+            if (r.reachesDestDirect) {
+                return List.of(new BlockEntry(
+                        r.pos.getX(), r.pos.getY(), r.pos.getZ(), "minecraft:redstone_wire"));
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    // -------------------------------------------------------------------------
+    // Live-world analysis (shared by the text trace and the deterministic best-fix)
+    // -------------------------------------------------------------------------
+
+    /**
+     * Reads the live redstone blocks around the player and computes sources, destinations,
+     * the live-wire power map, the signal path, candidate wire gaps, and an in-memory
+     * simulation of filling each gap. {@code simResults} is returned sorted best-first:
+     * verified direct fixes, then by estimated signal strength, then by proximity to the
+     * nearest destination — so the head of the list is always the simplest viable fix.
+     * Returns {@code null} when there are no redstone blocks nearby.
+     */
+    private static Analysis analyze() {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level == null || mc.player == null) return "";
+        if (mc.level == null || mc.player == null) return null;
 
         BlockPos origin = mc.player.blockPosition();
         ClientLevel world = mc.level;
@@ -59,7 +200,7 @@ public final class SignalTracer {
                     if (!bs.isAir() && isRedstoneRelated(idOf(bs))) area.put(p, bs);
                 }
 
-        if (area.isEmpty()) return "";
+        if (area.isEmpty()) return null;
 
         // Classify blocks.
         List<BlockPos> sources = new ArrayList<>();
@@ -152,89 +293,28 @@ public final class SignalTracer {
             simResults.add(new SimResult(gap, gapPwr, destAdjacent, twoHop));
         }
 
-        // Build the output.
-        // ALWAYS start with a full component listing so the AI has exact coordinates
-        // even when no signal is flowing (lever off, circuit incomplete, etc.).
-        StringBuilder sb = new StringBuilder("CIRCUIT TRACE:");
-        sb.append("\n  COMPONENTS:");
-        int shown = 0;
-        for (Map.Entry<BlockPos, BlockState> e : area.entrySet()) {
-            if (shown++ >= 20) { sb.append("\n    (+more)"); break; }
-            sb.append("\n    ").append(compactLine(e.getKey(), e.getValue()));
-        }
+        // Rank so the simplest viable fix is first: proven direct fixes before partial ones,
+        // then strongest incoming signal, then closest to a destination.
+        simResults.sort((x, y) -> {
+            if (x.reachesDestDirect != y.reachesDestDirect) return x.reachesDestDirect ? -1 : 1;
+            if (x.estimatedPower != y.estimatedPower) return Integer.compare(y.estimatedPower, x.estimatedPower);
+            return Double.compare(closestDist(x.pos, dests), closestDist(y.pos, dests));
+        });
 
-        // Signal analysis — only when there is active signal to trace.
-        if (!sources.isEmpty() || !liveWire.isEmpty()) {
-            if (!sources.isEmpty()) {
-                sb.append("\n  SOURCES:");
-                sources.forEach(p -> sb.append("\n    ").append(compactLine(p, area.get(p))));
-            }
-
-            if (!path.isEmpty()) {
-                sb.append("\n  SIGNAL PATH (high→low power):");
-                int pathShown = 0;
-                for (BlockPos p : path) {
-                    if (pathShown++ >= 8) { sb.append("\n    ..."); break; }
-                    int pwr = liveWire.getOrDefault(p, 0);
-                    sb.append("\n    wire@").append(coord(p)).append(" pwr=").append(pwr);
-                }
-            } else if (!liveWire.isEmpty()) {
-                int max = liveWire.values().stream().mapToInt(i -> i).max().orElse(0);
-                sb.append("\n  LIVE WIRE: ").append(liveWire.size()).append(" blocks, strength ").append(max).append("→").append(minPwr);
-            }
-
-            // Dead wire adjacent to live chain (something blocking signal).
-            deadWire.stream()
-                    .filter(d -> cardinalNeighbors(d).stream().anyMatch(liveSet::contains))
-                    .forEach(d -> sb.append("\n  BLOCKED: wire@").append(coord(d)).append(" pwr=0 adjacent to live chain"));
-
-            // Gaps.
-            if (!gaps.isEmpty()) {
-                sb.append("\n  GAP(S) — air where wire expected:");
-                gaps.stream().limit(5).forEach(g -> sb.append("\n    @").append(coord(g)));
-            }
-
-            // Destinations.
-            if (!dests.isEmpty()) {
-                sb.append("\n  DESTINATION(S):");
-                for (BlockPos d : dests) {
-                    boolean adjacent = cardinalNeighbors(d).stream().anyMatch(liveSet::contains);
-                    sb.append("\n    ").append(compactLine(d, area.get(d)));
-                    sb.append(adjacent ? " ← signal at border, check facing" : " ← NOT REACHED");
-                }
-            }
-
-            // Diagnosis.
-            if (!gaps.isEmpty() && !dests.isEmpty()) {
-                sb.append("\n  DIAGNOSIS: Wire gap(s) cut signal before reaching destination.");
-            } else if (!gaps.isEmpty()) {
-                sb.append("\n  DIAGNOSIS: Wire chain ends prematurely; ").append(gaps.size()).append(" gap(s).");
-            } else if (!dests.isEmpty()) {
-                sb.append("\n  DIAGNOSIS: Signal present but destination not reached — check facing/orientation.");
-            }
-
-            // Simulation.
-            if (!simResults.isEmpty()) {
-                sb.append("\n  SIMULATION:");
-                for (SimResult r : simResults) {
-                    sb.append("\n    Place wire@").append(coord(r.pos)).append(" (pwr≈").append(r.estimatedPower).append(")");
-                    if (r.reachesDestDirect) sb.append(" → destination receives signal. ✓ FIX VERIFIED");
-                    else if (r.reachesDestTwoHop) sb.append(" → destination within 2 blocks; fill remaining gap(s).");
-                    else sb.append(" → extends chain, destination still not reached.");
-                }
-            }
-        } else {
-            // No active signal — tell the AI so it doesn't think data is missing.
-            sb.append("\n  NOTE: No active power source detected (lever/button may be OFF, or no source placed).");
-            if (!deadWire.isEmpty()) sb.append(" Wire is present but carries no signal.");
-            if (!dests.isEmpty()) {
-                sb.append("\n  DESTINATION(S) (unpowered):");
-                dests.forEach(d -> sb.append("\n    ").append(compactLine(d, area.get(d))));
-            }
-        }
-
-        return sb.toString();
+        return new Analysis(area, sources, dests, liveWire, deadWire, path, minPwr, gaps, simResults);
     }
+
+    /** Snapshot of the live-world redstone analysis, shared by the text trace and best-fix. */
+    private record Analysis(
+            Map<BlockPos, BlockState> area,
+            List<BlockPos> sources,
+            List<BlockPos> dests,
+            Map<BlockPos, Integer> liveWire,
+            Set<BlockPos> deadWire,
+            List<BlockPos> path,
+            int minPwr,
+            List<BlockPos> gaps,
+            List<SimResult> simResults) {}
 
     // -------------------------------------------------------------------------
     // Fix safety validation
