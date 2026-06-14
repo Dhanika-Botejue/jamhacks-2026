@@ -146,7 +146,7 @@ public final class StepSession {
      */
     public static void onStepComplete() {
         if (plan == null) return;
-        ChatDisplay.system("Great job! ✔");
+        ChatDisplay.praise("Great job! ✔");
         next();
     }
 
@@ -188,7 +188,7 @@ public final class StepSession {
 
         ChatDisplay.system("Step " + (stepIndex + 1) + "/" + total + ": " + step.title());
         if (!step.explanation().isBlank()) {
-            ChatDisplay.print(step.explanation());
+            ChatDisplay.step(step.explanation());
         }
         int hidden = stepSpec.blocks().size() - shownSpec.size();
         if (hidden > 0) {

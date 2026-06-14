@@ -30,6 +30,14 @@ ahead or repositioning.
 | `/rouge move` | Re-place the hologram in front of where you're standing now. |
 | `/rouge stop` | Cancel the active build and clear the hologram. |
 
+## Voice (ElevenLabs)
+
+| Command | What it does |
+| --- | --- |
+| `/rouge voice` | Show whether voice is available and on/off. |
+| `/rouge voice on` | Speak Rouge's replies, step instructions, and praise aloud. Needs `ELEVENLABS_API_KEY` in `.env`. |
+| `/rouge voice off` | Mute spoken lines (chat text is unaffected). |
+
 ## Difficulty
 
 | Command | What it does |
