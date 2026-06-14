@@ -69,6 +69,11 @@ public final class CommandPanel {
 
     private CommandPanel() {}
 
+    /** True while the panel is open — used to suppress the vanilla player list (also on Tab). */
+    public static boolean isVisible() {
+        return visible;
+    }
+
     public static void register() {
         HudRenderCallback.EVENT.register(CommandPanel::render);
         ClientTickEvents.END_CLIENT_TICK.register(CommandPanel::tick);
@@ -115,6 +120,13 @@ public final class CommandPanel {
         int x = screenW - (int) (eased * hidden);
         int x2 = x + PANEL_W;
 
+        // Raise the whole panel above other HUD layers (player list, scoreboard, etc.).
+        // Vanilla HUD draws around z=0; tooltips use z=400. Sitting at z=400 keeps the panel
+        // on top regardless of draw order so nothing covers it.
+        var pose = g.pose();
+        pose.pushPose();
+        pose.translate(0, 0, 400);
+
         g.fill(x, panelTop, x2, panelTop + panelH, PANEL_BG);
         // Left accent border.
         g.fill(x, panelTop, x + 2, panelTop + panelH, BORDER);
@@ -140,6 +152,8 @@ public final class CommandPanel {
         }
 
         g.drawString(font, "Press Tab to close", tx, panelTop + panelH - LINE_H - 1, HINT_TEXT, false);
+
+        pose.popPose();
     }
 
     private static float ease(float t) {
