@@ -7,7 +7,7 @@ as a **step-by-step, translucent hologram** you follow block by block — no ext
 mod required. As you place each step's blocks correctly, Rouge detects it locally, says
 "Great job!", and **advances on its own**.
 
-1. **Ask** — `/rouge`, then "build me a 2x2 piston door" or "teach me an RS latch".
+1. **Ask** - `/rouge`, then "build me a 2x2 piston door" or "teach me an RS latch".
 2. **Rouge proposes a build** — it either **retrieves** a matching build from its library or
    **composes** a bigger one out of known parts, and asks you to confirm.
 3. **Build it step by step** — say **yes** and Rouge anchors a translucent ghost preview in
