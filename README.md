@@ -3,8 +3,6 @@
 A visual redstone building teacher for Minecraft, built as a Fabric mod that runs on the
 client.
 
-
-
 Open a chat session, ask Rouge to build something, and it projects the build into the world
 as a translucent hologram you follow one block at a time. No external schematic mod is
 required. As you place each step's blocks correctly, Rouge detects it locally, says "Great
