@@ -27,6 +27,7 @@ ahead or repositioning.
 | --- | --- |
 | `/rouge next` | Skip ahead to the next build step (same as saying "next"). |
 | `/rouge step` | Re-show the current step's hologram. |
+| `/rouge btw <question>` | Ask about the current build step. Rouge explains it in plain, simple language — like an elementary-school teacher — without touching the build. |
 | `/rouge move` | Re-place the hologram in front of where you're standing now. |
 | `/rouge stop` | Cancel the active build and clear the hologram. |
 

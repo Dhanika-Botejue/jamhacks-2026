@@ -130,6 +130,10 @@ public final class RougeSession {
     // lesson — causes the signal trace to be injected into the request.
     private static boolean pendingDebugTrace = false;
 
+    // Set to true for one AI dispatch when the player uses /rouge btw — steers the reply toward
+    // a simple, elementary-school-teacher explanation of the current build step.
+    private static boolean pendingSimpleExplain = false;
+
     // Blocks proposed by a rougefix fence, held until the player says "fix it".
     // Coordinates are absolute world coords so WorldPlacer uses BlockPos.ZERO as anchor.
     private static List<BlockEntry> pendingFix = null;
@@ -276,6 +280,7 @@ public final class RougeSession {
         awaitingStitch = false;
         primedInteractive = false;
         pendingDebugTrace = false;
+        pendingSimpleExplain = false;
         pendingFix = null;
         pendingFixDesc = null;
         lastQuery = "";
@@ -294,6 +299,7 @@ public final class RougeSession {
         awaitingStitch = false;
         primedInteractive = false;
         pendingDebugTrace = false;
+        pendingSimpleExplain = false;
         pendingFix = null;
         pendingFixDesc = null;
         lastQuery = "";
@@ -309,6 +315,27 @@ public final class RougeSession {
         if (open && mode == Mode.BUILDING) {
             mode = Mode.CHAT;
         }
+    }
+
+    /**
+     * Backs the {@code /rouge btw} command: the player asks about the build steps Rouge is
+     * walking them through, and Rouge answers in plain, simple language — like an
+     * elementary-school teacher. Opens the session if needed and routes the question straight
+     * to the AI, deliberately bypassing the build-browser intercept in {@link #handleChat} so
+     * a question that happens to contain a build verb gets explained instead of opening the
+     * picker. The simple-teacher tone is applied to this one reply only.
+     */
+    public static void askAboutSteps(String text) {
+        if (text == null || text.isBlank()) return;
+        if (!open) openSession();
+        if (awaitingReply) {
+            ChatDisplay.system("Rouge is still thinking… one moment.");
+            return;
+        }
+        ChatDisplay.userSaid(text); // echo the question so it's visible in chat
+        repairAttempts = 0;
+        pendingSimpleExplain = true;
+        sendToAi(text);
     }
 
     public static void handleUserMessage(String text) {
@@ -699,6 +726,16 @@ public final class RougeSession {
                 String solutionTrace = SignalTracer.trace(LessonManager.solution(), LessonManager.anchor());
                 if (!solutionTrace.isBlank()) request.add(ChatMessage.system(solutionTrace));
             }
+        }
+        // One-shot /rouge btw: explain the current build step like an elementary-school teacher.
+        if (pendingSimpleExplain) {
+            pendingSimpleExplain = false;
+            request.add(ChatMessage.system(
+                    "The player is asking about the build step you're walking them through. Explain it the way an "
+                    + "elementary-school teacher would: short sentences, plain everyday words, no jargon, warm and "
+                    + "encouraging. Say what the current step does and why it matters, simply enough for a beginner. "
+                    + "Reply with friendly plain text only — do NOT emit any rougebuild, rougeplanning, or rougefix "
+                    + "directive."));
         }
         if (mode == Mode.PLANNING && pendingOutline != null) {
             request.add(ChatMessage.system(
