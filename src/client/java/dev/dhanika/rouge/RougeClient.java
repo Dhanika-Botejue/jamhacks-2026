@@ -9,6 +9,8 @@ import dev.dhanika.rouge.render.GhostRenderer;
 import dev.dhanika.rouge.session.RougeSession;
 import dev.dhanika.rouge.teach.ProactiveTutor;
 import dev.dhanika.rouge.teach.StepSession;
+import dev.dhanika.rouge.voice.ElevenLabsConfig;
+import dev.dhanika.rouge.voice.RougeSpeech;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayConnectionEvents;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
@@ -26,6 +28,9 @@ public class RougeClient implements ClientModInitializer {
         OpenRouterClient client = new OpenRouterClient(config);
         RougeSession.init(client, config);
 
+        ElevenLabsConfig voiceConfig = new ElevenLabsConfig();
+        RougeSpeech.init(voiceConfig);
+
         if (!config.hasToken()) {
             LOGGER.warn("[Rouge] No {} set — Rouge can open a session but can't reach the AI until you set it.",
                     OpenRouterConfig.TOKEN_ENV_VAR);
@@ -40,6 +45,7 @@ public class RougeClient implements ClientModInitializer {
             RougeSession.reset();
             StepSession.reset();
             ModelDiscovery.invalidate();
+            RougeSpeech.stop();
         });
 
         LOGGER.info("Rouge initialized (model: {}).", config.model());

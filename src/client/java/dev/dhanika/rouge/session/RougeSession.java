@@ -9,6 +9,7 @@ import dev.dhanika.rouge.build.StepPlan;
 import dev.dhanika.rouge.chat.ChatDisplay;
 import dev.dhanika.rouge.prompt.SystemPrompts;
 import dev.dhanika.rouge.teach.StepSession;
+import dev.dhanika.rouge.voice.RougeSpeech;
 import net.minecraft.client.Minecraft;
 
 import org.slf4j.Logger;
@@ -106,6 +107,7 @@ public final class RougeSession {
         lastQuery = "";
         history.clear();
         StepSession.reset();
+        RougeSpeech.stop();
         ChatDisplay.system("Session closed. Chat is back to normal.");
     }
 
@@ -117,6 +119,7 @@ public final class RougeSession {
         repairAttempts = 0;
         lastQuery = "";
         history.clear();
+        RougeSpeech.stop();
     }
 
     /**
