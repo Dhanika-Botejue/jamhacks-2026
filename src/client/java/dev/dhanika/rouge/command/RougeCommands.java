@@ -2,6 +2,7 @@ package dev.dhanika.rouge.command;
 
 import com.mojang.brigadier.arguments.StringArgumentType;
 import dev.dhanika.rouge.build.Difficulty;
+import dev.dhanika.rouge.build.SignalTracer;
 import dev.dhanika.rouge.chat.ChatDisplay;
 import dev.dhanika.rouge.inventory.InventoryDistributor;
 import dev.dhanika.rouge.session.RougeSession;
@@ -45,6 +46,16 @@ public final class RougeCommands {
                         .then(ClientCommandManager.literal("materials")
                                 .executes(ctx -> {
                                     InventoryDistributor.giveForCurrentStep();
+                                    return 1;
+                                }))
+                        .then(ClientCommandManager.literal("trace")
+                                .executes(ctx -> {
+                                    String trace = SignalTracer.traceSignalPath();
+                                    if (trace.isBlank()) {
+                                        ChatDisplay.system("No redstone found nearby to trace. Stand near your circuit and try again.");
+                                    } else {
+                                        ChatDisplay.system(trace);
+                                    }
                                     return 1;
                                 }))
                         .then(ClientCommandManager.literal("btw")

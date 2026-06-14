@@ -7,7 +7,9 @@ import dev.dhanika.rouge.ai.ModelDiscovery;
 import dev.dhanika.rouge.command.BtwCommands;
 import dev.dhanika.rouge.command.RougeCommands;
 import dev.dhanika.rouge.render.GhostRenderer;
+import dev.dhanika.rouge.render.RougeCatHud;
 import dev.dhanika.rouge.session.RougeSession;
+import dev.dhanika.rouge.ui.CommandPanel;
 import dev.dhanika.rouge.teach.ProactiveTutor;
 import dev.dhanika.rouge.teach.StepSession;
 import dev.dhanika.rouge.voice.ElevenLabsConfig;
@@ -41,6 +43,8 @@ public class RougeClient implements ClientModInitializer {
         BtwCommands.register();
         ChatInterceptor.register();
         ProactiveTutor.register();
+        RougeCatHud.register();
+        CommandPanel.register();
         WorldRenderEvents.AFTER_TRANSLUCENT.register(GhostRenderer::render);
 
         ClientPlayConnectionEvents.DISCONNECT.register((handler, mc) -> {
