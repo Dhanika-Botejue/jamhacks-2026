@@ -50,6 +50,7 @@ public final class CommandPanel {
             Entry.cmd("/btw <question>", "Ask about the current build, keep going"),
             Entry.header("Debugging"),
             Entry.cmd("/rouge trace", "Trace live redstone signal around you"),
+            Entry.cmd("/fix <issue>", "Diagnose and auto-apply the repair"),
             Entry.cmd("\"why isn't this working?\"", "Diagnose the fault; say \"fix it\" to apply"),
             Entry.header("Difficulty"),
             Entry.cmd("/rouge level easy", "Show all of each step's blocks"),

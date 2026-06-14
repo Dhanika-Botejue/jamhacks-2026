@@ -10,9 +10,9 @@ import net.minecraft.network.chat.Component;
  * Prints Rouge messages into the player's own chat HUD (client-side only —
  * nothing is sent to the server).
  * <p>
- * Full text always appears in chat; voice uses {@link Tier} so TTS stays short
- * and does not burn through ElevenLabs credits. All methods must be called on
- * the main client thread.
+ * Full text always appears in chat; {@link Tier} decides which lines are spoken
+ * aloud (status and echo lines stay text-only). Spoken lines are read in full.
+ * All methods must be called on the main client thread.
  */
 public final class ChatDisplay {
 
@@ -21,17 +21,17 @@ public final class ChatDisplay {
     private ChatDisplay() {
     }
 
-    /** A normal Rouge reply — full text in chat, brief spoken intro only. */
+    /** A normal Rouge reply — full text in chat, spoken aloud in full. */
     public static void print(String message) {
         emit(message, ChatFormatting.LIGHT_PURPLE, Tier.INTRO);
     }
 
-    /** A build-step explanation — full text in chat, short spoken instruction. */
+    /** A build-step explanation — full text in chat, spoken aloud in full. */
     public static void step(String message) {
         emit(message, ChatFormatting.LIGHT_PURPLE, Tier.STEP);
     }
 
-    /** Spoken praise when a build step is cleared (2–4 words). */
+    /** Spoken praise when a build step is cleared. */
     public static void praise(String message) {
         emit(message, ChatFormatting.LIGHT_PURPLE, Tier.PRAISE);
     }
@@ -46,7 +46,7 @@ public final class ChatDisplay {
         emit(message, ChatFormatting.GRAY, Tier.OFF);
     }
 
-    /** An error line, in red — short spoken summary. */
+    /** An error line, in red — spoken aloud in full. */
     public static void error(String message) {
         emit(message, ChatFormatting.RED, Tier.ERROR);
     }

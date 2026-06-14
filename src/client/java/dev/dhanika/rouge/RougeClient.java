@@ -5,6 +5,7 @@ import dev.dhanika.rouge.ai.OpenRouterConfig;
 import dev.dhanika.rouge.chat.ChatInterceptor;
 import dev.dhanika.rouge.ai.ModelDiscovery;
 import dev.dhanika.rouge.command.BtwCommands;
+import dev.dhanika.rouge.command.FixCommands;
 import dev.dhanika.rouge.command.RougeCommands;
 import dev.dhanika.rouge.render.GhostRenderer;
 import dev.dhanika.rouge.render.RougeCatHud;
@@ -41,6 +42,7 @@ public class RougeClient implements ClientModInitializer {
 
         RougeCommands.register();
         BtwCommands.register();
+        FixCommands.register();
         ChatInterceptor.register();
         ProactiveTutor.register();
         RougeCatHud.register();

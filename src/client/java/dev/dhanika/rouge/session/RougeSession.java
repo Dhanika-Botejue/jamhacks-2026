@@ -105,6 +105,9 @@ public final class RougeSession {
     // absolute world coords, so WorldPlacer uses BlockPos.ZERO as the anchor.
     private static List<BlockEntry> pendingFix = null;
     private static String pendingFixDesc = null;
+    // One-shot: the next dispatch is a /fix turn — auto-apply the rougefix the AI returns instead
+    // of holding it for a separate "fix it" confirmation.
+    private static boolean autoApplyFix = false;
     private static final List<ChatMessage> history = new ArrayList<>();
 
     private RougeSession() {}
@@ -137,6 +140,7 @@ public final class RougeSession {
         pendingDebugTrace = false;
         pendingFix = null;
         pendingFixDesc = null;
+        autoApplyFix = false;
         history.clear();
         history.add(ChatMessage.system(SystemPrompts.redstoneTutor()));
         client.prewarm(); // discover free models + warm the TLS connection before the first ask
@@ -157,6 +161,7 @@ public final class RougeSession {
         pendingDebugTrace = false;
         pendingFix = null;
         pendingFixDesc = null;
+        autoApplyFix = false;
         history.clear();
         StepSession.reset();
         RougeSpeech.stop();
@@ -175,6 +180,7 @@ public final class RougeSession {
         pendingDebugTrace = false;
         pendingFix = null;
         pendingFixDesc = null;
+        autoApplyFix = false;
         history.clear();
         RougeSpeech.stop();
     }
@@ -216,6 +222,40 @@ public final class RougeSession {
         String q = question.trim();
         ChatDisplay.userSaid(q); // echo the question, like Claude Code shows your /btw prompt
         sendToAi(q, true);
+    }
+
+    /**
+     * {@code /fix}: one-shot "diagnose and repair". Runs the same live signal trace as a debug
+     * question, but the instant the AI returns a {@code rougefix} fence the blocks are placed
+     * automatically — no separate "fix it" confirmation. Singleplayer only, since applying the
+     * repair edits the world directly.
+     */
+    public static void askFix(String description) {
+        if (description == null || description.isBlank()) {
+            ChatDisplay.system("Usage: /fix <what's going wrong>  — I'll diagnose it and apply the fix automatically.");
+            return;
+        }
+        if (!open) {
+            openSession();
+        }
+        // Keep BUILDING mode while a hologram is live, so a follow-up "next"/"stop" still routes
+        // through the build handler after the repair lands.
+        if (StepSession.isActive()) {
+            mode = Mode.BUILDING;
+        }
+        if (awaitingReply) {
+            ChatDisplay.system("Rouge is still thinking… one moment.");
+            return;
+        }
+        if (!WorldPlacer.isAvailable()) {
+            ChatDisplay.error("Auto-fix only works in singleplayer. Use /btw <question> and I'll talk you through the fix.");
+            return;
+        }
+        String d = description.trim();
+        ChatDisplay.userSaid(d);
+        autoApplyFix = true;      // apply the resulting rougefix the instant it lands
+        pendingDebugTrace = true; // also inject the solution-vs-world comparison
+        sendToAi(d, false);
     }
 
     public static void handleUserMessage(String text) {
@@ -392,6 +432,18 @@ public final class RougeSession {
             }
         }
 
+        // /fix turn: the player wants the repair applied immediately, so insist on an actionable
+        // rougefix fence rather than a "say fix it" proposal.
+        if (autoApplyFix) {
+            request.add(ChatMessage.system(
+                    "PLAYER USED /fix — apply-on-arrival repair. From the CIRCUIT TRACE above, reply with at "
+                    + "most one short sentence naming the fault, then a ```rougefix``` fence containing the exact "
+                    + "block(s) to place at the trace's absolute world x,y,z. It is applied automatically with no "
+                    + "confirmation, so it must be complete and obey every rougefix rule (route existing signal "
+                    + "only — never add a power source or swap a component). If you genuinely cannot determine a "
+                    + "fix, say so in one sentence and emit no fence."));
+        }
+
         // Recent dialogue window (everything after the persona prompt at index 0).
         int from = Math.max(1, history.size() - MAX_HISTORY_MESSAGES);
         request.addAll(history.subList(from, history.size()));
@@ -408,6 +460,11 @@ public final class RougeSession {
         awaitingReply = false;
         RougeCatHud.stopThinking(); // reply landed — cat settles down
         if (!open) return;
+
+        // /fix turns auto-apply the resulting rougefix. Capture and clear the one-shot flag now so
+        // it never leaks into a later normal reply.
+        boolean autoFix = autoApplyFix;
+        autoApplyFix = false;
 
         if (err != null) {
             awaitingCoachingReply = false;
@@ -437,14 +494,29 @@ public final class RougeSession {
                 parseFix(fixJson);
                 history.add(ChatMessage.assistant(chatPart.isEmpty() ? "[fix proposal]" : chatPart));
                 if (!chatPart.isEmpty()) ChatDisplay.print(chatPart);
-                int count = pendingFix != null ? pendingFix.size() : 0;
-                ChatDisplay.system("Rouge has a " + count + "-block fix ready. Say \"fix it\" to apply"
-                        + (WorldPlacer.isAvailable() ? "" : " (singleplayer only)") + ", or \"no\" to skip.");
+                if (autoFix) {
+                    applyPendingFix(); // /fix: place the repair immediately, no "fix it" needed
+                } else {
+                    int count = pendingFix != null ? pendingFix.size() : 0;
+                    ChatDisplay.system("Rouge has a " + count + "-block fix ready. Say \"fix it\" to apply"
+                            + (WorldPlacer.isAvailable() ? "" : " (singleplayer only)") + ", or \"no\" to skip.");
+                }
             } catch (Exception e) {
                 LOGGER.warn("[Rouge] Failed to parse rougefix: {}", e.getMessage(), e);
                 history.add(ChatMessage.assistant(reply));
                 ChatDisplay.print(reply);
             }
+            return;
+        }
+
+        // /fix asked for an immediate repair but the model returned no fix fence. Show its diagnosis
+        // (minus any stray build fence) and let the player retry, rather than silently doing nothing.
+        if (autoFix) {
+            String text = FENCE.matcher(reply).replaceAll("").trim();
+            if (text.isEmpty()) text = reply.trim();
+            history.add(ChatMessage.assistant(reply));
+            if (!text.isEmpty()) ChatDisplay.print(text);
+            ChatDisplay.system("I couldn't lock in an automatic fix from that. Try /fix again with a bit more detail.");
             return;
         }
 

@@ -9,32 +9,23 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Speaks Rouge chat lines via ElevenLabs. Lines are queued and played in order.
- * Use {@link Tier} to keep utterances short and save API credits.
+ * Each spoken line is read out in full; {@link Tier} only decides whether a line
+ * is voiced at all (status lines stay text-only via {@link Tier#OFF}).
  */
 public final class RougeSpeech {
 
     private static final Logger LOGGER = LoggerFactory.getLogger("rouge");
 
-    /** Max words spoken for AI intros and main replies. */
-    private static final int MAX_INTRO_WORDS = 8;
-    /** Max words for step instructions (matches AI prompt). */
-    private static final int MAX_STEP_WORDS = 12;
-    /** Max words for errors. */
-    private static final int MAX_ERROR_WORDS = 8;
-
-    /** Max words for step-complete praise. */
-    private static final int MAX_PRAISE_WORDS = 4;
-
     public enum Tier {
         /** Do not speak (status lines, full text already in chat). */
         OFF,
-        /** AI intro / reply — a few words only. */
+        /** AI intro / reply — spoken in full. */
         INTRO,
-        /** Step instruction — the explanation line, kept short. */
+        /** Step instruction — the explanation line, spoken in full. */
         STEP,
-        /** Step cleared — brief "good job" before next instructions. */
+        /** Step cleared — the "good job" line, spoken in full. */
         PRAISE,
-        /** Error — very short. */
+        /** Error — spoken in full. */
         ERROR
     }
 
@@ -77,7 +68,7 @@ public final class RougeSpeech {
         if (tier == Tier.OFF || !enabled.get() || client == null || !client.hasKey() || line == null) {
             return;
         }
-        String cleaned = forSpeech(line, tier);
+        String cleaned = forSpeech(line);
         if (cleaned.isBlank()) {
             return;
         }
@@ -121,34 +112,16 @@ public final class RougeSpeech {
         }
     }
 
-    static String forSpeech(String line, Tier tier) {
+    static String forSpeech(String line) {
+        if (line == null) return "";
         String t = line.trim();
         if (t.isEmpty()) return "";
 
+        // Strip markdown/decoration that would otherwise be read aloud literally,
+        // but keep the full sentence(s) so the voiceover matches the chat text.
         t = t.replaceAll("[`*_#]", "");
         t = t.replace("•", "");
         t = t.replace("✔", "");
-        t = t.replaceAll("\\s+", " ").trim();
-
-        int maxWords = switch (tier) {
-            case INTRO -> MAX_INTRO_WORDS;
-            case STEP -> MAX_STEP_WORDS;
-            case PRAISE -> MAX_PRAISE_WORDS;
-            case ERROR -> MAX_ERROR_WORDS;
-            case OFF -> 0;
-        };
-        return limitWords(t, maxWords);
-    }
-
-    private static String limitWords(String text, int maxWords) {
-        if (maxWords <= 0 || text.isBlank()) return "";
-        String[] words = text.split("\\s+");
-        if (words.length <= maxWords) return text;
-        StringBuilder sb = new StringBuilder();
-        for (int i = 0; i < maxWords; i++) {
-            if (i > 0) sb.append(' ');
-            sb.append(words[i]);
-        }
-        return sb.toString();
+        return t.replaceAll("\\s+", " ").trim();
     }
 }
